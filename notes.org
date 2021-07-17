@@ -1,0 +1,12 @@
+* CHESS ENGINE
+** TODO BOARD REPRESENTATION
+*** PIECE CENTRIC
+**** Bitboard
+- 64-bit word or register for the entire board
+- 1 bitboard for each piece-type/color
+-
+
+**** Piece-List
+**** Piece-Set
+*** SQUARE CENTRIC
+** TODO
