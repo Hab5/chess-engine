@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <type_traits>
 
-enum EnumSquare {
+enum EnumSquare { // LERF
     a1,b1,c1,d1,e1,f1,g1,h1,
     a2,b2,c2,d2,e2,f2,g2,h2,
     a3,b3,c3,d3,e3,f3,g3,h3,
@@ -21,53 +21,51 @@ enum EnumSquare {
 };
 
 enum EnumColor: std::uint8_t {
-    WHITE = 0x00,
-    BLACK = 0x01
+    White = 0x00,
+    Black = 0x01
 };
 
 enum EnumPiece: std::uint8_t {
-    PAWNS   = 0x02,
-    KNIGHTS = 0x03,
-    BISHOPS = 0x04,
-    ROOKS   = 0x05,
-    QUEENS  = 0x06,
-    KING    = 0x07
+    Pawns   = 0x02,
+    Knights = 0x03,
+    Bishops = 0x04,
+    Rooks   = 0x05,
+    Queens  = 0x06,
+    King    = 0x07
 };
 
 enum EnumFlip: std::uint8_t {
-    VERTICAL,
-    HORIZONTAL,
-    DIAGONAL
+    Vertical,
+    Horizontal,
+    Diagonal
 };
 
-enum DefaultBoardPosition {};
+enum EnumFile: std::uint64_t {
+    FileA = 0x0101010101010101,
+    FileB = 0x0202020202020202,
+    FileC = 0x0303030303030303,
+    FileD = 0x0404040404040404,
+    FileE = 0x0505050505050505,
+    FileF = 0x0606060606060606,
+    FileG = 0x0707070707070707,
+    FileH = 0x0808080808080808
+};
 
-// indebitboard = 8*rank+file
-// flip_vertical = __builtin_bswap64(2);
+enum EnumRank: std::uint64_t {
+    Rank1 = 0x00000000000000ff,
+    Rank2 = 0x000000000000ff00,
+    Rank3 = 0x0000000000ff0000,
+    Rank4 = 0x00000000ff000000,
+    Rank5 = 0x000000ff00000000,
+    Rank6 = 0x0000ff0000000000,
+    Rank7 = 0x00ff000000000000,
+    Rank8 = 0xff00000000000000
+};
 
-class ChessBoard final {
+class BBTools final {
 public:
-
-    ChessBoard() {
-        Pieces[WHITE  ] |= (0xffffULL << 48ULL) | 0x0000ULL;
-        Pieces[BLACK  ] |= (0xffffULL << 00ULL) | 0x0000ULL;
-        Pieces[PAWNS  ] |= (0xff00ULL << 40ULL) | 0xff00ULL;
-        Pieces[KNIGHTS] |= (0x0042ULL << 56ULL) | 0x0042ULL;
-        Pieces[BISHOPS] |= (0x0024ULL << 56ULL) | 0x0024ULL;
-        Pieces[ROOKS  ] |= (0x0081ULL << 56ULL) | 0x0081ULL;
-        Pieces[QUEENS ] |= (0x0008ULL << 56ULL) | 0x0008ULL;
-        Pieces[KING   ] |= (0x0010ULL << 56ULL) | 0x0010ULL;
-
-    }
-
-    template <typename T>
-    [[nodiscard]] inline auto operator[](T query) const {
-        return Pieces[query];
-    }
-
-    static auto Print(std::uint64_t bitboard) {
+    static void Print(std::uint64_t bitboard) {
         auto str = std::bitset<64>(bitboard).to_string();
-        std::reverse(str.begin(), str.end());
         for (int i = 0; i < str.size();)
             std::cout << str[i++] << (!(i % 8) ? '\n':' ');
         std::cout << std::endl;
@@ -75,9 +73,9 @@ public:
 
     template <EnumFlip flip>
     [[nodiscard]] static auto Flip(std::uint64_t bitboard) {
-        if (flip == VERTICAL)
+        if (flip == Vertical)
             return __builtin_bswap64(bitboard);
-        else if (flip == HORIZONTAL) {
+        else if (flip == Horizontal) {
             const std::uint64_t k1 = 0x5555555555555555;
             const std::uint64_t k2 = 0x3333333333333333;
             const std::uint64_t k4 = 0x0f0f0f0f0f0f0f0f;
@@ -87,16 +85,57 @@ public:
             return bitboard;
         }
     }
-
-private:
-    std::array<std::uint64_t, 8> Pieces { };
 };
 
+struct Pieces final {
+public:
+    template <typename T>
+    [[nodiscard]] inline auto operator[](T query) const {
+        return boards[query];
+    }
 
+    template<EnumColor c, EnumPiece p>
+    auto constexpr SetBit(EnumSquare sq) {
+        boards[p] |= (1ULL << sq);
+        boards[c] |= (1ULL << sq);
+    }
+
+    template <EnumColor c, EnumPiece p>
+    [[nodiscard]] auto constexpr GetMoves() {
+        std::uint64_t piece_set =   boards[p] & boards[c];
+        std::uint64_t empty     = ~(boards[c] | boards[c]);
+        std::uint64_t enemy     =   boards[!c];
+
+        switch (p) {
+        case Pawns:
+        case Knights:
+        case Bishops:
+        case Rooks:
+        case Queens:
+        case King: ;
+        }
+
+        return enemy;
+    }
+
+private:
+    std::array<std::uint64_t, 8> boards {
+        (0xffffULL << 0 ) | 0x0000ULL, // White
+        (0xffffULL << 48) | 0x0000ULL, // Black
+        (0xff00ULL << 40) | 0xff00ULL, // Pawns
+        (0x0042ULL << 56) | 0x0042ULL, // Knights
+        (0x0024ULL << 56) | 0x0024ULL, // Bishops
+        (0x0081ULL << 56) | 0x0081ULL, // Rooks
+        (0x0008ULL << 56) | 0x0008ULL, // Queens
+        (0x0010ULL << 56) | 0x0010ULL  // King
+    };
+};
 
 int main() {
-    ChessBoard board;
-    ChessBoard::Print(board[BLACK]);
+    Pieces Pieces;
+    BBTools::Print(Pieces[Pawns]);
+    Pieces.SetBit<White, Pawns>(a3);
+    BBTools::Print(Pieces[White] & FileA);
 }
 // Get the white knights/rooks/king on the 1st and 8th ranks and on the C file, then flip the bitboard vertically.
 //
