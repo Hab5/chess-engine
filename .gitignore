@@ -1,5 +1,4 @@
 .cache
-main
 .gdb_history
 compile_commands.json
-
+chess-engine

@@ -2,9 +2,13 @@
 
 namespace Utils {
 
-template <EnumFlip Direction>
-[[nodiscard]] constexpr std::uint64_t Flip(std::uint64_t bitboard) noexcept {
-    auto flip_horizontal = [bitboard]() mutable -> std::uint64_t {
+template <>
+[[nodiscard]] constexpr std::uint64_t Flip<Vertical>(std::uint64_t bitboard) noexcept {
+    return __builtin_bswap64(bitboard);
+}
+
+template <>
+[[nodiscard]] constexpr std::uint64_t Flip<Horizontal>(std::uint64_t bitboard) noexcept {
         const std::uint64_t k1 = 0x5555555555555555;
         const std::uint64_t k2 = 0x3333333333333333;
         const std::uint64_t k4 = 0x0f0f0f0f0f0f0f0f;
@@ -12,17 +16,11 @@ template <EnumFlip Direction>
         bitboard = ((bitboard >> 2) & k2) +  4*(bitboard & k2);
         bitboard = ((bitboard >> 4) & k4) + 16*(bitboard & k4);
         return bitboard;
-    };
+}
 
-    auto flip_diagonal = [bitboard]() mutable -> std::uint64_t {
-        return bitboard; // TODO
-    };
-
-    switch (Direction) {
-        case Vertical  : return __builtin_bswap64(bitboard);
-        case Horizontal: return flip_horizontal();
-        case Diagonal  : return flip_diagonal();
-    }
+template <>
+[[nodiscard]] constexpr std::uint64_t Flip<Diagonal>(std::uint64_t bitboard) noexcept {
+    return bitboard; // TODO
 }
 
 void Print(std::uint64_t bitboard) noexcept {
