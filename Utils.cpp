@@ -1,18 +1,6 @@
 #include "Utils.hpp"
 
-void Print(std::uint64_t bitboard) noexcept {
-    auto bitset = std::bitset<64>(Utils::Flip<Vertical>(bitboard));
-    for (int i = 0; i < 64;) {
-        std::cout << (i % 8 ? "" : "  " + std::to_string(8-i/8) + " ")
-                  << (bitset[i] ? "■ " : "□ "); i++;
-        if (i % 8 == 0) {
-            if      (i/8 == 1) std::cout << std::hex << "┃ HEX: " << bitset.to_ullong();
-            else if (i/8 == 2) std::cout << std::dec << "┃ DEC: " << bitset.to_ullong();
-            else std::cout << "┃";
-            std::cout << std::dec << '\n';
-        }
-    } std::cout << "    a b c d e f g h \n\n";
-}
+namespace Utils {
 
 template <EnumFlip Direction>
 [[nodiscard]] constexpr std::uint64_t Flip(std::uint64_t bitboard) noexcept {
@@ -37,6 +25,21 @@ template <EnumFlip Direction>
     }
 }
 
+void Print(std::uint64_t bitboard) noexcept {
+    auto bitset = std::bitset<64>(Flip<Vertical>(bitboard));
+    for (int i = 0; i < 64;) {
+        std::cout << (i % 8 ? "" : "  " + std::to_string(8-i/8) + " ")
+                  << (bitset[i] ? "■ " : "□ "); i++;
+        if (i % 8 == 0) {
+            if      (i/8 == 1) std::cout << std::hex << "┃ HEX: " << bitset.to_ullong();
+            else if (i/8 == 2) std::cout << std::dec << "┃ DEC: " << bitset.to_ullong();
+            else std::cout << "┃";
+            std::cout << std::dec << '\n';
+        }
+    } std::cout << "    a b c d e f g h \n\n";
+}
+
+
 template <EnumSquare Square>
 [[nodiscard]] constexpr bool GetSquare(std::uint64_t bitboard) noexcept {
     return bitboard & (1ULL << Square);
@@ -57,4 +60,6 @@ template <EnumSquare Square>
 template <EnumSquare Square>
 [[nodiscard]] constexpr auto MakeSquare() noexcept {
     return 0ULL | (1ULL << Square);
+}
+
 }
