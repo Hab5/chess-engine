@@ -97,15 +97,39 @@ std::uint64_t GenerateMagicNumber() {
     return rng() & rng() & rng();
 }
 
+std::uint64_t FindMagicNumber(EnumSquare square) {
+    std::array<std::uint64_t, 4096> occupancies = { };
+    std::array<std::uint64_t, 4096> attacks = { };
+    std::array<std::uint64_t, 4096> used_attacks = { };
+    auto attack_mask = AttackMask<White, Rooks>::On(square);
+    int occupancy_idx = 1 << RooksOccupancyBitcount[square];
+
+    for (int idx = 0; idx < occupancy_idx; idx++) {
+        occupancies[idx] = GetOccupancy(idx, attack_mask);
+        attacks[idx] = SliderAttacks<Rooks>::On(square, occupancies[idx]);
+    }
+
+    for (int random_count = 0; random_count < 100000000; random_count++) {
+        auto magic_number = GenerateMagicNumber();
+        if (Utils::BitCount((attack_mask*magic_number) & 0xff00000000000000) < 6) continue;
+        used_attacks.fill(0x00);
+        int idx, fail;
+
+        for (idx = 0, fail = 0; !fail && idx < occupancy_idx; idx++ ) {
+            int magic_idx = (occupancies[idx] * magic_number) >> (64-RooksOccupancyBitcount[square]);
+            if (used_attacks[magic_idx] == 0ULL)
+                used_attacks[magic_idx] = attacks[idx];
+            else if (used_attacks[magic_idx] != attacks[idx]) fail = 1;
+        }
+
+        if (!fail) return magic_number;
+    }
+    std::cout << "magic failed\n";
+    return 0ULL;
+}
+
 int main() {
     Pieces Pieces;
 
-    std::mt19937_64 rng(time(0));
-    auto bit64 = rng(); // 64 bits
-    auto bit32 = rng() & 0xffffffff; // 32 bits
-    auto bit16 = rng() & 0xffff; // 16 bits
-
-    std::cout << bit64 << '\n';
-    std::cout << bit32 << '\n';
-    std::cout << bit16 << '\n';
+   std::cout << FindMagicNumber(a1) << std::endl;
 }
