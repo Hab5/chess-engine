@@ -3,22 +3,24 @@
 #include "ChessEngine.hpp"
 
 #include <array>
+#include <iostream>
+
 
 namespace Generator {
 
-using AttackTable = std::array<std::uint64_t, 64>;
+using MaskTable = std::array<std::uint64_t, 64>;
 
 template <EnumColor color, EnumPiece type>
-class Attack final {
+class AttackMask final {
 public:
     static constexpr auto Get() noexcept {
         switch(type) {
-        case EnumPiece::Pawns:   return Attack::Pawn();
-        case EnumPiece::Knights: return Attack::Knight();
-        case EnumPiece::Bishops: return Attack::Bishop();
-        case EnumPiece::Rooks:   return Attack::Rook();
-        case EnumPiece::Queens:  return Attack::Queen();
-        case EnumPiece::King:    return Attack::King();
+        case EnumPiece::Pawns:   return AttackMask::Pawn();
+        case EnumPiece::Knights: return AttackMask::Knight();
+        case EnumPiece::Bishops: return AttackMask::Bishop();
+        case EnumPiece::Rooks:   return AttackMask::Rook();
+        case EnumPiece::Queens:  return AttackMask::Queen();
+        case EnumPiece::King:    return AttackMask::King();
         }
     }
 
@@ -41,7 +43,7 @@ private:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr AttackTable Knight() noexcept {
+    [[nodiscard]] static constexpr MaskTable Knight() noexcept {
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             std::uint64_t knight = 0ULL | (1ULL << square);
@@ -57,7 +59,7 @@ private:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr AttackTable Bishop() noexcept { // Magic Bitboards
+    [[nodiscard]] static constexpr MaskTable Bishop() noexcept { // Magic Bitboards
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
@@ -73,7 +75,7 @@ private:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr AttackTable Rook() noexcept { // Magic Bitboards
+    [[nodiscard]] static constexpr MaskTable Rook() noexcept { // Magic Bitboards
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
@@ -89,9 +91,9 @@ private:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr AttackTable Queen() noexcept { return {0ULL}; }
+    [[nodiscard]] static constexpr MaskTable Queen() noexcept { return {0ULL}; }
 
-    [[nodiscard]] static constexpr AttackTable King() noexcept {
+    [[nodiscard]] static constexpr MaskTable King() noexcept {
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             std::uint64_t king = 0ULL | (1ULL << square);
@@ -108,22 +110,92 @@ private:
         } return masks;
     }
 
-     Attack() = delete;
-    ~Attack() = delete;
+     AttackMask() = delete;
+    ~AttackMask() = delete;
 };
 
 }
 
+
+
+
+
+
 template <EnumColor Color, EnumPiece Piece>
-struct Attack final {
+struct AttackMask final {
 public:
     [[nodiscard]] static constexpr auto On(std::size_t square) noexcept {
         return MaskTable[square];
     };
 
 private:
-    static constexpr auto MaskTable = Generator::Attack<Color, Piece>::Get();
+    static constexpr auto MaskTable = Generator::AttackMask<Color, Piece>::Get();
 
-     Attack() = delete;
-    ~Attack() = delete;
+     AttackMask() = delete;
+    ~AttackMask() = delete;
+};
+
+
+
+
+
+
+
+
+
+template <EnumPiece Piece>
+struct SliderAttacks final { };
+
+template <>
+struct SliderAttacks<Bishops> final {
+public:
+    [[nodiscard]] static constexpr auto On(std::size_t square, std::uint64_t blockers) noexcept {
+        std::uint64_t masks = 0ULL, mask = 0ULL;
+        int target_rank = square / 8, target_file = square % 8; // 2D Square Index
+        int r = target_rank+1, f = target_file+1;
+        while (r <= 7 && f <= 7) { // NE
+            mask = (1ULL << ((8*r++)+(f++)));
+            masks |= mask; if (mask & blockers) break;
+        } r = target_rank+1, f = target_file-1;
+        while (r <= 7 && f >= 0) { // NE
+            mask = (1ULL << ((8*r++)+(f--)));
+            masks |= mask; if (mask & blockers) break;
+        } r = target_rank-1, f = target_file+1;
+        while (r >= 0 && f <= 7) { // SE
+            mask = (1ULL << ((8*r--)+(f++)));
+            masks |= mask; if (mask & blockers) break;
+        } r = target_rank-1, f = target_file-1;
+        while (r >= 0 && f >= 0) { // SE
+            mask = (1ULL << ((8*r--)+(f--)));
+            masks |= mask; if (mask & blockers) break;
+        }
+        return masks;
+    }
+};
+
+template <>
+struct SliderAttacks<Rooks> final {
+public:
+    [[nodiscard]] static constexpr auto On(std::size_t square, std::uint64_t blockers) noexcept {
+        std::uint64_t masks = 0ULL, mask = 0ULL;
+        int target_rank = square / 8, target_file = square % 8; // 2D Square Index
+        int r = target_rank+1, f = target_file;
+        while (r <= 7) { // N
+            mask = (1ULL << ((8*r++)+f));
+            masks |= mask; if (mask & blockers) break;
+        } r = target_rank-1, f = target_file;
+        while (r >= 0) { // S
+            mask = (1ULL << ((8*r--)+f));
+            masks |= mask; if (mask & blockers) break;
+        } r = target_rank, f = target_file+1;
+        while (f <= 7) { // E
+            mask = (1ULL << (8*r+(f++)));
+            masks |= mask; if (mask & blockers) break;
+        } r = target_rank, f = target_file-1;
+        while (f >= 0) { // W
+            mask = (1ULL << (8*r+(f--)));
+            masks |= mask; if (mask & blockers) break;
+        }
+        return masks;
+    }
 };

@@ -16,7 +16,7 @@ enum EnumFlip: std::uint8_t {
 
 class Utils final {
 public:
-    #define Print(...) Utils::_Print(__VA_ARGS__, #__VA_ARGS__); // good luck
+    #define Print(...) Utils::_Print(__VA_ARGS__, #__VA_ARGS__); // read this you fucking casual
     static void _Print(std::uint64_t bitboard, const std::string& desc="None") {
         std::stringstream ss;
         auto bitset = std::bitset<64>(Utils::Flip<Vertical>(bitboard));
@@ -39,19 +39,34 @@ public:
                 std::cout << [&]() -> std::string {
                     ss.str(std::string());
                     switch (i/8) {
-                    case  1: ss << "│ " + desc; break;
-                    case  2: ss << "├" << line_padding << "┤"; break;
-                    case  3: ss << std::hex << "│ HEX: " << bitset.to_ullong(); break;
-                    case  4: ss << std::dec << "│ DEC: " << bitset.to_ullong(); break;
                     default: ss << "│"; break;
+                    case  1: ss << "│ " + desc;                                   break;
+                    case  2: ss << "├" << line_padding << "┤";                    break;
+                    case  3: ss << std::hex << "│ HEX: " << bitset.to_ullong();   break;
+                    case  4: ss << std::dec << "│ DEC: " << bitset.to_ullong();   break;
+                    case  5: ss << "│ POP: " << BitCount(bitboard);               break;
+                    case  6: ss << "│ FST: " << SquareIndex[IndexLS1B(bitboard)]; break;
+                    case  7: ss << "│ LST: " << SquareIndex[IndexMS1B(bitboard)]; break;
                     } ss << empty_padding(ss.str().size());
                     return ss.str();
                 }() << std::dec;
             }
-        } std::cout << "\n│   a b c d e f g h │" + empty_padding(3)
+        } std::cout << "\n│ ϴ a b c d e f g h │" + empty_padding(3)
                     << "\n└───────────────────┴" + line_padding + "┘\n";
     }
 
+    [[nodiscard]] static inline constexpr int BitCount(std::uint64_t bitboard) noexcept {
+        return __builtin_popcountll(bitboard);
+    }
+
+    [[nodiscard]] static inline constexpr int IndexLS1B(std::uint64_t bitboard) noexcept {
+        return (bitboard ? __builtin_ctzll(bitboard):h8+1);
+    }
+
+    [[nodiscard]] static inline constexpr int IndexMS1B(std::uint64_t bitboard) noexcept {
+        return (bitboard ? __builtin_clzll(bitboard):h8+1);
+    }
+    
     template <EnumSquare Square>
     [[nodiscard]] static constexpr bool GetSquare(std::uint64_t bitboard) noexcept {
         return bitboard & (1ULL << Square);
