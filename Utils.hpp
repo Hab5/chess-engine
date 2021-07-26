@@ -20,7 +20,7 @@ public:
     static void _Print(std::uint64_t bitboard, const std::string& desc="None") {
         std::stringstream ss;
         auto bitset = std::bitset<64>(Utils::Flip<Vertical>(bitboard));
-        auto desc_size = int(desc.size()); desc_size += (desc_size < 24 ? 24-desc_size:0);
+        auto desc_size = int(desc.size()); desc_size += (desc_size < 25 ? 25-desc_size:0);
         for (int i = 0; i < desc_size+2; i++) ss << "─";
         auto line_padding = ss.str();
 

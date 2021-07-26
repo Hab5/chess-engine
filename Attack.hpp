@@ -10,11 +10,11 @@ namespace Generator {
 
 using MaskTable = std::array<std::uint64_t, 64>;
 
-template <EnumColor color, EnumPiece type>
+template <EnumColor Color, EnumPiece Piece>
 class AttackMask final {
 public:
     static constexpr auto Get() noexcept {
-        switch(type) {
+        switch(Piece) {
         case EnumPiece::Pawns:   return AttackMask::Pawn();
         case EnumPiece::Knights: return AttackMask::Knight();
         case EnumPiece::Bishops: return AttackMask::Bishop();
@@ -26,11 +26,11 @@ public:
 
 private:
 
-    [[nodiscard]] static constexpr std::array<std::uint64_t, 64> Pawn() noexcept {
+    [[nodiscard]] static constexpr auto Pawn() noexcept {
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             std::uint64_t pawn = 0ULL | (1ULL << square);
-            switch (color) {
+            switch (Color) {
             case White:
                 if ((pawn << 9) & ~File_A) masks[square] |= (pawn << 9); // NW
                 if ((pawn << 7) & ~File_H) masks[square] |= (pawn << 7); // NE
@@ -43,7 +43,7 @@ private:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr MaskTable Knight() noexcept {
+    [[nodiscard]] static constexpr auto Knight() noexcept {
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             std::uint64_t knight = 0ULL | (1ULL << square);
@@ -59,7 +59,7 @@ private:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr MaskTable Bishop() noexcept { // Magic Bitboards
+    [[nodiscard]] static constexpr auto Bishop() noexcept { // For Magic Bitboards
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
@@ -75,7 +75,7 @@ private:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr MaskTable Rook() noexcept { // Magic Bitboards
+    [[nodiscard]] static constexpr auto Rook() noexcept { // For Magic Bitboards
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
@@ -91,9 +91,9 @@ private:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr MaskTable Queen() noexcept { return {0ULL}; }
+    [[nodiscard]] static constexpr auto Queen() noexcept { return MaskTable{0ULL}; }
 
-    [[nodiscard]] static constexpr MaskTable King() noexcept {
+    [[nodiscard]] static constexpr auto King() noexcept {
         std::array<std::uint64_t, 64> masks { };
         for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             std::uint64_t king = 0ULL | (1ULL << square);
@@ -118,9 +118,6 @@ private:
 
 
 
-
-
-
 template <EnumColor Color, EnumPiece Piece>
 struct AttackMask final {
 public:
@@ -134,12 +131,6 @@ private:
      AttackMask() = delete;
     ~AttackMask() = delete;
 };
-
-
-
-
-
-
 
 
 
