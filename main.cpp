@@ -61,6 +61,19 @@ private:
 int main() {
     Pieces Pieces;
 
-    Utils::Print(Attack<Rooks>::On(a1, Utils::MakeSquare<a6>() | Utils::MakeSquare<f1>()));
-    Utils::Print(Attack<Bishops>::On(a1, Utils::MakeSquare<d4>() | Utils::MakeSquare<f1>()));
+    bool rooks_failure = false, bishops_failure = false;
+
+    std::mt19937_64 rng(time(0));
+    for (int square = 64; square < 64; square++) {
+        for (int random_test = 0; random_test < 100000000; random_test++) {
+            auto occ = rng() & rng() & rng();
+            if (Attack<Rooks>::On(square, occ) != SliderAttacks<Rooks>::On(square, occ))
+                rooks_failure = true;
+            if (Attack<Bishops>::On(square, occ) != SliderAttacks<Bishops>::On(square, occ))
+                bishops_failure = true;
+        }
+    }
+
+    std::cout << "ROOK  : " << (rooks_failure ? "FAILURE\n" : "SUCCESS\n");
+    std::cout << "BISHOP: " << (bishops_failure ? "FAILURE\n" : "SUCCESS\n");
 }

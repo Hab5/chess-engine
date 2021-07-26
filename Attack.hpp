@@ -8,10 +8,17 @@
 #include <iostream>
 #include <sys/types.h>
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////// ATTACK GENERATOR //////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
+
 namespace Generator {
 
 template <auto... EnumColor_EnumPiece>
 class Attacks final { };
+
+/////////////////////////////////////////// PAWNS /////////////////////////////////////////////
 
 template <EnumColor Color, EnumPiece Piece>
 class Attacks<Color, Piece> final {
@@ -43,16 +50,15 @@ private:
      Attacks() = delete;
     ~Attacks() = delete;
 };
-    
+
+/////////////////////////////////////// KNIGHTS / KING ////////////////////////////////////////
+
 template <EnumPiece Piece>
 class Attacks<Piece> final {
 public:
     [[nodiscard]] static constexpr auto Get() noexcept {
         switch(Piece) {
         case EnumPiece::Knights: return Attacks::Knight();
-        // case EnumPiece::Bishops: return Attacks::Bishop();
-        // case EnumPiece::Rooks:   return Attacks::Rook();
-        case EnumPiece::Queens:  return Attacks::Queen();
         case EnumPiece::King:    return Attacks::King();
         }
     }
@@ -73,38 +79,6 @@ private:
             if ((knight >> 6 ) & ~(File_A | File_B)) attacks[square] |= (knight >> 6 ); // SE
         } return attacks;
     }
-
-    [[nodiscard]] static constexpr auto Bishop() noexcept { // For Magic Bitboards
-        std::array<std::uint64_t, 64> masks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
-            int target_rank = square / 8, target_file = square % 8; // 2D Square Index
-            int r = target_rank+1, f = target_file+1;
-            while (r <= 6 && f <= 6) masks[square] |= (1ULL << ((8*r++)+(f++))); // NE
-            r = target_rank+1, f = target_file-1;
-            while (r <= 6 && f >= 1) masks[square] |= (1ULL << ((8*r++)+(f--))); // SE
-            r = target_rank-1, f = target_file+1;
-            while (r >= 1 && f <= 6) masks[square] |= (1ULL << ((8*r--)+(f++))); // SE
-            r = target_rank-1, f = target_file-1;
-            while (r >= 1 && f >= 1) masks[square] |= (1ULL << ((8*r--)+(f--))); // SW
-        } return masks;
-    }
-
-    [[nodiscard]] static constexpr auto Rook() noexcept { // For Magic Bitboards
-        std::array<std::uint64_t, 64> masks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
-            int target_rank = square / 8, target_file = square % 8; // 2D Square Index
-            int r = target_rank+1, f = target_file;
-            while (r <= 6) masks[square] |= (1ULL << ((8*r++)+f)); // N
-            r = target_rank-1, f = target_file;
-            while (r >= 1) masks[square] |= (1ULL << ((8*r--)+f)); // S
-            r = target_rank, f = target_file+1;
-            while (f <= 6) masks[square] |= (1ULL << (8*r+(f++))); // E
-            r = target_rank, f = target_file-1;
-            while (f >= 1) masks[square] |= (1ULL << (8*r+(f--))); // W
-        } return masks;
-    }
-
-    [[nodiscard]] static constexpr auto Queen() noexcept { return std::array<std::uint64_t, 64>{ }; }
 
     [[nodiscard]] static constexpr auto King() noexcept {
         std::array<std::uint64_t, 64> attacks { };
@@ -127,8 +101,13 @@ private:
     ~Attacks() = delete;
 };
 
+
+///////////////////////////////////////// SLIDERS /////////////////////////////////////////////
+
 template <EnumPiece Piece>
 class Slider final { };
+
+////////////////////////////////////////// ROOKS //////////////////////////////////////////////
 
 template <>
 class Slider<Rooks> final {
@@ -193,7 +172,6 @@ public:
             return occupancy;
         };
 
-
         std::array<std::uint64_t, 64> masks = Masks();
         std::array<int, 64> masks_bitcount = MasksBitCount();
         std::array<std::array<std::uint64_t, 4096>, 64> attacks { };
@@ -213,6 +191,8 @@ private:
      Slider() = delete;
     ~Slider() = delete;
 };
+
+///////////////////////////////////////// BISHOPS /////////////////////////////////////////////
 
 template <>
 class Slider<Bishops> final {
@@ -280,7 +260,7 @@ public:
 
         std::array<std::uint64_t, 64> masks = Masks();
         std::array<int, 64> masks_bitcount = MasksBitCount();
-        std::array<std::array<std::uint64_t, 4096>, 64> attacks { }; // ERROR
+        std::array<std::array<std::uint64_t, 4096>, 64> attacks { };
         for (int square = 0; square < 64; square++) {
             auto attack_mask = masks[square];
             auto relevant_bits = masks_bitcount[square];
@@ -300,17 +280,17 @@ private:
 
 }
 
-
-
-
-
-
+///////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////// ATTACK DISPATCHER //////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
 
 template <auto... Args>
-struct Attack final { }; // All pieces
+struct Attack final { };
+
+////////////////////////////////////////// PAWNS //////////////////////////////////////////////
 
 template <EnumColor Color, EnumPiece Pawn>
-struct Attack<Color, Pawn> final { // Pawns
+struct Attack<Color, Pawn> final {
 public:
     [[nodiscard]] static constexpr auto On(std::size_t square) noexcept {
         return AttackTable[square];
@@ -323,8 +303,10 @@ private:
     ~Attack() = delete;
 };
 
+/////////////////////////////////////// KNIGHTS / KING ////////////////////////////////////////
+
 template <EnumPiece Piece>
-struct Attack<Piece> final { // Knight / King
+struct Attack<Piece> final {
 public:
     [[nodiscard]] static constexpr auto On(std::size_t square) noexcept {
         return AttackTable[square];
@@ -337,8 +319,10 @@ private:
     ~Attack() = delete;
 };
 
+///////////////////////////////////////// BISHOPS /////////////////////////////////////////////
+
 template <>
-struct Attack<Bishops> final { // Bishops
+struct Attack<Bishops> final {
 public:
     [[nodiscard]] static constexpr auto On(int square, std::uint64_t occupancy) noexcept {
         occupancy &= MaskTable[square];
@@ -346,14 +330,19 @@ public:
         occupancy >>= 64 - MaskBitCount[square];
         return AttackTable[square][occupancy];
     }
+private:
     static constexpr auto AttackTable    = Generator::Slider<Bishops>::Attacks();
     static constexpr auto MaskTable      = Generator::Slider<Bishops>::Masks();
     static constexpr auto MaskBitCount   = Generator::Slider<Bishops>::MasksBitCount();
-private:
+
+     Attack() = delete;
+    ~Attack() = delete;
 };
 
+////////////////////////////////////////// ROOKS //////////////////////////////////////////////
+
 template <>
-struct Attack<Rooks> final { // Rooks
+struct Attack<Rooks> final {
 public:
     [[nodiscard]] static constexpr auto On(int square, std::uint64_t occupancy) noexcept {
         occupancy &= MaskTable[square];
@@ -361,35 +350,22 @@ public:
         occupancy >>= 64 - MaskBitCount[square];
         return AttackTable[square][occupancy];
     }
+private:
     static constexpr auto AttackTable    = Generator::Slider<Rooks>::Attacks();
     static constexpr auto MaskTable      = Generator::Slider<Rooks>::Masks();
     static constexpr auto MaskBitCount   = Generator::Slider<Rooks>::MasksBitCount();
-private:
+
+     Attack() = delete;
+    ~Attack() = delete;
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// For debug
 
 template <EnumPiece Piece>
 struct SliderAttacks final { };
