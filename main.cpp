@@ -9,7 +9,7 @@
 #include <array>
 
 int main() {
-    ChessBoard Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    std::cout << Position << std::endl;
+    ChessBoard Board("rnb1kbnr/pp3ppp/2p5/3Pp1q1/3P4/5N2/PPP2PPP/RNBQKB1R w KQkq - 1 5");
+    std::cout << Board << std::endl;
     return 0;
 }
