@@ -1,4 +1,4 @@
-#include "Position.hpp"
+#include "ChessBoard.hpp"
 #include "FEN.hpp"
 
 ChessBoard::ChessBoard(const std::string& fen) { FEN::Load(fen, *this); }
