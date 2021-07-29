@@ -16,10 +16,9 @@ enum EnumFlip: std::uint8_t {
 
 class Utils final {
 public:
-    #define Print(...) Utils::_Print(__VA_ARGS__, #__VA_ARGS__); // read this you fucking casual
-    static void _Print(std::uint64_t bitboard, const std::string& desc="None") {
+    #define Print(...) Utils::_Print(#__VA_ARGS__, __VA_ARGS__); // read this you fucking casual
+    static void _Print(const std::string& desc="None", std::uint64_t bitboard=0ULL) {
         std::stringstream ss;
-        auto bitset = std::bitset<64>(Utils::Flip<Vertical>(bitboard));
         auto desc_size = int(desc.size()); desc_size += (desc_size < 25 ? 25-desc_size:0);
         for (int i = 0; i < desc_size+2; i++) ss << "─";
         auto line_padding = ss.str();
@@ -31,24 +30,22 @@ public:
             } return ss.str();
         };
 
+        auto bitset = std::bitset<64>(Utils::Flip<Vertical>(bitboard));
+
         std::cout << "┌───────────────────┬" + line_padding + "┐";
-        for (int i = 0; i < 64;) {
-            std::cout << (i % 8 ? "" : "\n│ " + std::to_string(8-i/8) + " ")
-                      << (bitset[i] ? "■ " : "□ ");
-            if (++i % 8 == 0) {
+        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
+            std::cout << (square % 8 ? " " : "\n│ " + std::to_string(8-square/8) + " ")
+                      << (bitset[square] ? "■" : "□");
+            if ((square+1) % 8 == 0) {
                 std::cout << [&]() -> std::string {
                     ss.str(std::string());
-                    switch (i/8) {
+                    switch (square/8) {
+                    case  0: ss << "│ " + desc;                                 break;
+                    case  1: ss << "├" << line_padding << "┤";                  break;
+                    case  2: ss << std::hex << "│ HEX: " << bitset.to_ullong(); break;
+                    case  3: ss << std::dec << "│ DEC: " << bitset.to_ullong(); break;
                     default: ss << "│"; break;
-                    case  1: ss << "│ " + desc;                                   break;
-                    case  2: ss << "├" << line_padding << "┤";                    break;
-                    case  3: ss << std::hex << "│ HEX: " << bitset.to_ullong();   break;
-                    case  4: ss << std::dec << "│ DEC: " << bitset.to_ullong();   break;
-                    case  5: ss << "│ POP: " << BitCount(bitboard);               break;
-                    case  6: ss << "│ FST: " << SquareIndex[IndexLS1B(bitboard)]; break;
-                    case  7: ss << "│ LST: " << SquareIndex[IndexMS1B(bitboard)]; break;
-                    } ss << empty_padding(ss.str().size());
-                    return ss.str();
+                    } return " " + ss.str() + empty_padding(ss.str().size());
                 }() << std::dec;
             }
         } std::cout << "\n│ ϴ a b c d e f g h │" + empty_padding(3)
@@ -66,27 +63,23 @@ public:
     [[nodiscard]] static inline constexpr int IndexMS1B(std::uint64_t bitboard) noexcept {
         return (bitboard ? __builtin_clzll(bitboard):h8+1);
     }
-    
-    template <EnumSquare Square>
-    [[nodiscard]] static constexpr bool GetSquare(std::uint64_t bitboard) noexcept {
-        return bitboard & (1ULL << Square);
+
+    [[nodiscard]] static constexpr bool GetSquare(std::uint64_t bitboard, int square) noexcept {
+        return bitboard & (1ULL << square);
     }
 
-    template <EnumSquare Square>
-    [[nodiscard]] static constexpr std::uint64_t SetSquare(std::uint64_t bitboard) noexcept {
-        return bitboard |= (1ULL << Square);
+    [[nodiscard]] static constexpr auto SetSquare(std::uint64_t bitboard, int square) noexcept {
+        return bitboard |= (1ULL << square);
     }
 
-    template <EnumSquare Square>
-    [[nodiscard]] static constexpr std::uint64_t PopSquare(std::uint64_t bitboard) noexcept {
-        if (bitboard  & (1ULL << Square))
-            bitboard ^= (1ULL << Square);
+    [[nodiscard]] static constexpr auto PopSquare(std::uint64_t bitboard, int square) noexcept {
+        if (bitboard  & (1ULL << square))
+            bitboard ^= (1ULL << square);
         return bitboard;
     }
 
-    template <EnumSquare Square>
-    [[nodiscard]] static constexpr std::uint64_t MakeSquare() noexcept {
-        return 0ULL | (1ULL << Square);
+    [[nodiscard]] static constexpr std::uint64_t MakeSquare(EnumSquare square) noexcept {
+        return 0ULL | (1ULL << square);
     }
 
     template <EnumFlip Direction>

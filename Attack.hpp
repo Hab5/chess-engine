@@ -15,7 +15,7 @@
 
 namespace Generator {
 
-template <auto... EnumColor_EnumPiece>
+template <auto... Args>
 class Attacks final { };
 
 /////////////////////////////////////////// PAWNS /////////////////////////////////////////////
@@ -24,8 +24,6 @@ template <EnumColor Color, EnumPiece Piece>
 class Attacks<Color, Piece> final {
 public:
     [[nodiscard]] static constexpr auto Get() noexcept {
-        static_assert(Piece == Pawns,
-            "Use AttackMask<Piece> for anything other than `Pawns`\n");
         return Attacks::Pawn();
     }
 
@@ -107,91 +105,6 @@ private:
 template <EnumPiece Piece>
 class Slider final { };
 
-////////////////////////////////////////// ROOKS //////////////////////////////////////////////
-
-template <>
-class Slider<Rooks> final {
-public:
-    [[nodiscard]] static constexpr auto Masks() noexcept {
-        std::array<std::uint64_t, 64> masks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
-            int target_rank = square / 8, target_file = square % 8; // 2D Square Index
-            int r = target_rank+1, f = target_file;
-            while (r <= 6) masks[square] |= (1ULL << ((8*r++)+f)); // N
-            r = target_rank-1, f = target_file;
-            while (r >= 1) masks[square] |= (1ULL << ((8*r--)+f)); // S
-            r = target_rank, f = target_file+1;
-            while (f <= 6) masks[square] |= (1ULL << (8*r+(f++))); // E
-            r = target_rank, f = target_file-1;
-            while (f >= 1) masks[square] |= (1ULL << (8*r+(f--))); // W
-        } return masks;
-    }
-
-    [[nodiscard]] static constexpr auto MasksBitCount() noexcept {
-        std::array<std::uint64_t, 64> masks = Masks();
-        std::array<int, 64> masks_bitcount = { };
-        for (int square = 0; square < 64; square++)
-            masks_bitcount[square] = Utils::BitCount(masks[square]);
-        return masks_bitcount;
-    }
-
-    [[nodiscard]] static constexpr auto Attacks() noexcept {
-        auto on_the_fly = [](std::size_t square, std::uint64_t occupancy) constexpr {
-            std::uint64_t attack = 0ULL, rook = 0ULL;
-            int target_rank = square / 8, target_file = square % 8; // 2D Square Index
-            int r = target_rank+1, f = target_file;
-            while (r <= 7) { // N
-                rook = (1ULL << ((8*r++)+f));
-                attack |= rook; if (rook & occupancy) break;
-            } r = target_rank-1, f = target_file;
-            while (r >= 0) { // S
-                rook = (1ULL << ((8*r--)+f));
-                attack |= rook; if (rook & occupancy) break;
-            } r = target_rank, f = target_file+1;
-            while (f <= 7) { // E
-                rook = (1ULL << (8*r+(f++)));
-                attack |= rook; if (rook & occupancy) break;
-            } r = target_rank, f = target_file-1;
-            while (f >= 0) { // W
-                rook = (1ULL << (8*r+(f--)));
-                attack |= rook; if (rook & occupancy) break;
-            }
-            return attack;
-        };
-
-        auto get_occupancy = [](int index, std::uint64_t attack_mask) constexpr {
-            std::uint64_t occupancy = 0ULL;
-            const auto mask_population = Utils::BitCount(attack_mask);
-            for (int count = 0; count < mask_population; count++) {
-                auto square = Utils::IndexLS1B(attack_mask);
-                if (attack_mask  & (1ULL << square)) // TODO: Make PopSquare() constexpr here
-                    attack_mask ^= (1ULL << square);
-                if (index & (1 << count))
-                    occupancy |= (1ULL << square);
-            }
-            return occupancy;
-        };
-
-        std::array<std::uint64_t, 64> masks = Masks();
-        std::array<int, 64> masks_bitcount = MasksBitCount();
-        std::array<std::array<std::uint64_t, 4096>, 64> attacks { };
-        for (int square = 0; square < 64; square++) {
-            auto attack_mask = masks[square];
-            auto relevant_bits = masks_bitcount[square];
-            int occupancy_idx = 1 << relevant_bits;
-            for (int idx = 0; idx < occupancy_idx; idx++) {
-                auto occupancy = get_occupancy(idx, attack_mask);
-                int magic_index = (occupancy * Magics<Rooks>[square]) >> (64-relevant_bits);
-                attacks[square][magic_index] = on_the_fly(square, occupancy);
-            }
-        } return attacks;
-    }
-
-private:
-     Slider() = delete;
-    ~Slider() = delete;
-};
-
 ///////////////////////////////////////// BISHOPS /////////////////////////////////////////////
 
 template <>
@@ -215,13 +128,13 @@ public:
     [[nodiscard]] static constexpr auto MasksBitCount() noexcept {
         std::array<std::uint64_t, 64> masks = Masks();
         std::array<int, 64> masks_bitcount = { };
-        for (int square = 0; square < 64; square++)
+        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++)
             masks_bitcount[square] = Utils::BitCount(masks[square]);
         return masks_bitcount;
     }
 
     [[nodiscard]] static constexpr auto Attacks() noexcept {
-        auto on_the_fly = [](std::size_t square, std::uint64_t occupancy) constexpr {
+        auto get_attacks = [](std::size_t square, std::uint64_t occupancy) constexpr {
             std::uint64_t attacks = 0ULL, bishop = 0ULL;
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
             int r = target_rank+1, f = target_file+1;
@@ -260,15 +173,100 @@ public:
 
         std::array<std::uint64_t, 64> masks = Masks();
         std::array<int, 64> masks_bitcount = MasksBitCount();
-        std::array<std::array<std::uint64_t, 4096>, 64> attacks { };
-        for (int square = 0; square < 64; square++) {
+        std::array<std::array<std::uint64_t, 512>, 64> attacks { };
+        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
             auto attack_mask = masks[square];
             auto relevant_bits = masks_bitcount[square];
             int occupancy_idx = 1 << relevant_bits;
             for (int idx = 0; idx < occupancy_idx; idx++) {
                 auto occupancy = get_occupancy(idx, attack_mask);
                 int magic_index = (occupancy * Magics<Bishops>[square]) >> (64-relevant_bits);
-                attacks[square][magic_index] = on_the_fly(square, occupancy);
+                attacks[square][magic_index] = get_attacks(square, occupancy);
+            }
+        } return attacks;
+    }
+
+private:
+     Slider() = delete;
+    ~Slider() = delete;
+};
+
+////////////////////////////////////////// ROOKS //////////////////////////////////////////////
+
+template <>
+class Slider<Rooks> final {
+public:
+    [[nodiscard]] static constexpr auto Masks() noexcept {
+        std::array<std::uint64_t, 64> masks { };
+        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
+            int target_rank = square / 8, target_file = square % 8; // 2D Square Index
+            int r = target_rank+1, f = target_file;
+            while (r <= 6) masks[square] |= (1ULL << ((8*r++)+f)); // N
+            r = target_rank-1, f = target_file;
+            while (r >= 1) masks[square] |= (1ULL << ((8*r--)+f)); // S
+            r = target_rank, f = target_file+1;
+            while (f <= 6) masks[square] |= (1ULL << (8*r+(f++))); // E
+            r = target_rank, f = target_file-1;
+            while (f >= 1) masks[square] |= (1ULL << (8*r+(f--))); // W
+        } return masks;
+    }
+
+    [[nodiscard]] static constexpr auto MasksBitCount() noexcept {
+        std::array<std::uint64_t, 64> masks = Masks();
+        std::array<int, 64> masks_bitcount = { };
+        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++)
+            masks_bitcount[square] = Utils::BitCount(masks[square]);
+        return masks_bitcount;
+    }
+
+    [[nodiscard]] static constexpr auto Attacks() noexcept {
+        auto get_attacks = [](std::size_t square, std::uint64_t occupancy) constexpr {
+            std::uint64_t attack = 0ULL, rook = 0ULL;
+            int target_rank = square / 8, target_file = square % 8; // 2D Square Index
+            int r = target_rank+1, f = target_file;
+            while (r <= 7) { // N
+                rook = (1ULL << ((8*r++)+f));
+                attack |= rook; if (rook & occupancy) break;
+            } r = target_rank-1, f = target_file;
+            while (r >= 0) { // S
+                rook = (1ULL << ((8*r--)+f));
+                attack |= rook; if (rook & occupancy) break;
+            } r = target_rank, f = target_file+1;
+            while (f <= 7) { // E
+                rook = (1ULL << (8*r+(f++)));
+                attack |= rook; if (rook & occupancy) break;
+            } r = target_rank, f = target_file-1;
+            while (f >= 0) { // W
+                rook = (1ULL << (8*r+(f--)));
+                attack |= rook; if (rook & occupancy) break;
+            }
+            return attack;
+        };
+
+        auto get_occupancy = [](int index, std::uint64_t attack_mask) constexpr {
+            std::uint64_t occupancy = 0ULL;
+            const auto mask_population = Utils::BitCount(attack_mask);
+            for (int count = 0; count < mask_population; count++) {
+                auto square = Utils::IndexLS1B(attack_mask);
+                if (attack_mask  & (1ULL << square)) // TODO: Make PopSquare() constexpr here
+                    attack_mask ^= (1ULL << square);
+                if (index & (1 << count))
+                    occupancy |= (1ULL << square);
+            }
+            return occupancy;
+        };
+
+        std::array<std::uint64_t, 64> masks = Masks();
+        std::array<int, 64> masks_bitcount = MasksBitCount();
+        std::array<std::array<std::uint64_t, 4096>, 64> attacks { };
+        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
+            auto attack_mask = masks[square];
+            auto relevant_bits = masks_bitcount[square];
+            int occupancy_idx = 1 << relevant_bits;
+            for (int idx = 0; idx < occupancy_idx; idx++) {
+                auto occupancy = get_occupancy(idx, attack_mask);
+                int magic_index = (occupancy * Magics<Rooks>[square]) >> (64-relevant_bits);
+                attacks[square][magic_index] = get_attacks(square, occupancy);
             }
         } return attacks;
     }
@@ -289,21 +287,23 @@ struct Attack final { };
 
 ////////////////////////////////////////// PAWNS //////////////////////////////////////////////
 
-template <EnumColor Color, EnumPiece Pawn>
-struct Attack<Color, Pawn> final {
+template <EnumColor Color, EnumPiece Piece>
+struct Attack<Color, Piece> final {
 public:
     [[nodiscard]] static constexpr auto On(std::size_t square) noexcept {
-        return AttackTable[square];
+        static_assert(
+            Piece == Pawns,
+            "Use Attack<Piece> for anything other than `Pawns`\n"
+        ); return AttackTable[square];
     };
-
 private:
-    static constexpr auto AttackTable = Generator::Attacks<Color, Pawn>::Get();
+    static constexpr auto AttackTable = Generator::Attacks<Color, Pawns>::Get();
 
      Attack() = delete;
     ~Attack() = delete;
 };
 
-/////////////////////////////////////// KNIGHTS / KING ////////////////////////////////////////
+/////////////////////////////////////// KNIGHTS / KING /////////////////////////////////////////
 
 template <EnumPiece Piece>
 struct Attack<Piece> final {
@@ -311,7 +311,6 @@ public:
     [[nodiscard]] static constexpr auto On(std::size_t square) noexcept {
         return AttackTable[square];
     };
-
 private:
     static constexpr auto AttackTable = Generator::Attacks<Piece>::Get();
 
@@ -365,7 +364,27 @@ private:
 
 
 
-// For debug
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////// FOR TESTS //////////////////////////////////////////
 
 template <EnumPiece Piece>
 struct SliderAttacks final { };
