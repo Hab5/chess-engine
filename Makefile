@@ -31,6 +31,7 @@ TARGET  := chess-engine
 
 CC      := g++
 FLAGS   := -Wall -Wextra -fconstexpr-ops-limit=1000000000
+STD     := -std=c++17
 RELEASE := -O3 -march=native
 DEBUG   := -g3 -fsanitize=address,undefined
 LIBS    :=
@@ -42,45 +43,40 @@ OBJDIR  := obj
 OBJ     := $(patsubst %.cpp,$(OBJDIR)/%.o,$(SRC))
 DEPS    := $(patsubst %.cpp,$(OBJDIR)/%.d,$(SRC))
 
-all: build $(TARGET)
-	@$(ECHO) $(FINISHED) "$(GRN)COMPILING $(RST)\n"
-
 debug:   FLAGS += $(DEBUG)
 debug:   all
 
 release: FLAGS += $(RELEASE)
 release: all
 
+all: build $(TARGET)
+	@$(ECHO) $(FINISHED) "$(GRN)COMPILING $(RST)\n"
+
+
 $(OBJDIR)/%.o: %.cpp Makefile
 	@mkdir -p $(@D)
 	@$(ECHO) $(BUILDING) "$(patsubst %.cpp,%.o,$<)"
-	@$(CC) $(FLAGS) -MMD -MP -c $< -o $@
-	@$(ECHO) $(BUILDING) "$(patsubst %.cpp,%.d,$<)"
-	@sleep 0.05
+	@$(CC) $(FLAGS) $(STD) -MMD -MP -c $< -o $@
+	@$(ECHO) $(BUILDING) "$(patsubst %.cpp,%.d,$<)" && sleep 0.05
 
 $(TARGET): $(OBJ)
 	@mkdir -p $(@D)
-	@$(CC) $(FLAGS) $(LIBS) $^ -o $(TARGET)
+	@$(CC) $(FLAGS) $(STD) $(LIBS) $^ -o $(TARGET)
 	@$(ECHO) $(BUILDING) $(TARGET)
-
 
 -include $(DEPS)
 
 build:
-	@$(STARTING)
+	@$(STARTING) && sleep 0.2
 	@mkdir -p $(OBJDIR)
 
 clean:
-	@$(STARTING)
-	@$(ECHO) $(DELETING) "object files"
-	@sleep 0.2
-	@$(ECHO) $(DELETING) "dependency files"
-	@sleep 0.2
-	@$(ECHO) $(DELETING) "${TARGET}"
-	@sleep 0.2
-	@$(ECHO) $(DELETING) "$(OBJDIR)/"
+	@$(STARTING) && sleep 0.2
 	-@rm -rf $(OBJDIR) $(TARGET)
-	@sleep 0.2
+	@$(ECHO) $(DELETING) "object files"     && sleep 0.2
+	@$(ECHO) $(DELETING) "dependency files" && sleep 0.2
+	@$(ECHO) $(DELETING) "$(OBJDIR)/"       && sleep 0.2
+	@$(ECHO) $(DELETING) "${TARGET}"        && sleep 0.2
 	@$(ECHO) $(FINISHED) "$(GRN)CLEANING $(RST)\n"
 
 info:
@@ -89,6 +85,7 @@ info:
 	$(YLW)   CC      | $(BLU)$(CC)$(RST)\n\
 	$(YLW)   LIBS    | $(BLU)$(LIBS)$(RST)\n\
 	$(YLW)   FLAGS   | $(BLU)$(FLAGS)$(RST)\n\
+	$(YLW)   STD     | $(BLU)$(STD)$(RST)\n\
 	$(YLW)   RELEASE | $(BLU)$(RELEASE)$(RST)\n\
 	$(YLW)   DEBUG   | $(BLU)$(DEBUG)$(RST)\n "
 
