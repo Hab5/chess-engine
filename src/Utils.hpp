@@ -78,7 +78,7 @@ public:
         return bitboard;
     }
 
-    [[nodiscard]] static constexpr std::uint64_t MakeSquare(EnumSquare square) noexcept {
+    [[nodiscard]] static constexpr std::uint64_t MakeSquare(int square) noexcept {
         return 0ULL | (1ULL << square);
     }
 

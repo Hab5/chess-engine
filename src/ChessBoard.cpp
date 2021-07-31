@@ -11,8 +11,8 @@ ChessBoard::ChessBoard(const std::string& fen) {
 
     const std::array<std::string, 6> unicode { "♟", "♞", "♝", "♜", "♛", "♚" };
 
-    const auto fg_white = "\033[38;5;250m";
-    const auto fg_black = "\033[38;5;59m";
+    const auto fg_white = "\033[38;5;246m";
+    const auto fg_black = "\033[38;5;241m";
     const auto fg_dim   = "\033[38;5;242m";
     const auto reset    = "\033[0m";
 
@@ -44,10 +44,10 @@ ChessBoard::ChessBoard(const std::string& fen) {
             std::stringstream ss;
             switch(square/8) {
             case 0: ss << "TOPLAY: " << (to_play ? "BLACK" : "WHITE"); break;
-            case 1: ss << "ENPASS: " << (en_passant > 0 ? SquareIndex[en_passant]: "-"); break;
-            case 2: ss << "HMOVES: " << half_moves; break;
+            case 2: ss << "ENPASS: " << (en_passant > 0 ? SquareIndex[en_passant]: "-"); break;
             case 3: ss << "FMOVES: " << full_moves; break;
-            case 4: ss << "CASTLE: "
+            case 4: ss << "HMOVES: " << half_moves; break;
+            case 1: ss << "CASTLE: "
                        << (castling_rights[0] ? "K" : "-")
                        << (castling_rights[1] ? "Q" : "-")
                        << (castling_rights[2] ? "k" : "-")
