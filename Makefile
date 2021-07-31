@@ -1,31 +1,6 @@
-######################################################################
-###################### PROGRESS INDICATION TOOLS #####################
-######################################################################
-
-RED = \033[31m
-GRN = \033[32m
-YLW = \033[33m
-BLU = \033[34m
-RST = \033[0m
-CLR = \033[2K
-
-STARTING  = echo -ne "\r $(YLW)  0% $(BLU)STARTING $(RST)"
-CREATING  = "$(GRN)CREATING$(RST)"
-BUILDING  = "$(GRN)BUILDING$(RST)"
-DELETING  = "$(RED)DELETING$(RST)"
-FINISHED  = "$(BLU)FINISHED$(RST)"
-
-ifndef ECHO
-TOTAL  != $(MAKE) $(MAKECMDGOALS) --dry-run ECHO="HIT" | grep -c "HIT"
-CURRENT = $(eval HIT_N != expr $(HIT_N) + 1)$(HIT_N)
-PERCENT = expr $(CURRENT) '*' 100 / $(TOTAL)
-ECHO = echo -ne "\r$(CLR)$(YLW)`expr " \`$(PERCENT)\`" \
-                : '.*\(...\)$$'`%$(RST)"
-endif
-
-######################################################################
-########################### MAKEFILE RULES ###########################
-######################################################################
+########################################################################
+############################ USER SETTINGS #############################
+########################################################################
 
 TARGET  := chess-engine
 
@@ -36,10 +11,15 @@ RELEASE := -O3 -march=native
 DEBUG   := -g3 -fsanitize=address,undefined
 LIBS    :=
 
+OBJDIR  := obj
+
+########################################################################
+############################ MAKEFILE RULES ############################
+########################################################################
+
 SRC     := $(wildcard *.cpp) $(wildcard */*.cpp)
 INC     := $(wildcard *.hpp) $(wildcard */*.hpp)
 
-OBJDIR  := obj
 OBJ     := $(patsubst %.cpp,$(OBJDIR)/%.o,$(SRC))
 DEPS    := $(patsubst %.cpp,$(OBJDIR)/%.d,$(SRC))
 
@@ -55,9 +35,9 @@ all: build $(TARGET)
 
 $(OBJDIR)/%.o: %.cpp Makefile
 	@mkdir -p $(@D)
-	@$(ECHO) $(BUILDING) "$(patsubst %.cpp,%.o,$<)"
+	@$(ECHO) $(BUILDING) "$(BLU)$(patsubst %.cpp,%.o,$<)$(RST) \
+	-> $(BLU)$(patsubst %.cpp,%.d,$<)$(RST)"
 	@$(CC) $(FLAGS) $(STD) -MMD -MP -c $< -o $@
-	@$(ECHO) $(BUILDING) "$(patsubst %.cpp,%.d,$<)" && sleep 0.05
 
 $(TARGET): $(OBJ)
 	@mkdir -p $(@D)
@@ -73,10 +53,10 @@ build:
 clean:
 	@$(STARTING) && sleep 0.2
 	-@rm -rf $(OBJDIR) $(TARGET)
-	@$(ECHO) $(DELETING) "object files"     && sleep 0.2
-	@$(ECHO) $(DELETING) "dependency files" && sleep 0.2
-	@$(ECHO) $(DELETING) "$(OBJDIR)/"       && sleep 0.2
-	@$(ECHO) $(DELETING) "${TARGET}"        && sleep 0.2
+	@$(ECHO) $(DELETING) "$(BLU)object files$(RST)"     && sleep 0.2
+	@$(ECHO) $(DELETING) "$(BLU)dependency files$(RST)" && sleep 0.2
+	@$(ECHO) $(DELETING) "$(BLU)$(OBJDIR)/$(RST)"       && sleep 0.2
+	@$(ECHO) $(DELETING) "$(BLU)${TARGET}$(RST)"        && sleep 0.2
 	@$(ECHO) $(FINISHED) "$(GRN)CLEANING $(RST)\n"
 
 info:
@@ -89,9 +69,38 @@ info:
 	$(YLW)   RELEASE | $(BLU)$(RELEASE)$(RST)\n\
 	$(YLW)   DEBUG   | $(BLU)$(DEBUG)$(RST)\n "
 
-	@echo -e "$(GRN)SOURCES:   $(BLU)\n   $(patsubst %.cpp,%.cpp \n  ,$(SRC))"
-	@echo -e "$(GRN)INCLUDE:   $(BLU)\n   $(patsubst %.hpp,%.hpp \n  ,$(INC))"
-	@echo -e "$(GRN)OBJECTS:   $(BLU)\n   $(patsubst %.cpp,%.o \n  ,$(SRC))"
-	@echo -e "$(GRN)DEPENDS:   $(BLU)\n   $(patsubst %.cpp,%.d \n  ,$(SRC))"
+	@echo -e "$(GRN)SOURCES:$(BLU)\n $(patsubst %.cpp,  %.cpp\n,$(SRC))"
+	@echo -e "$(GRN)INCLUDE:$(BLU)\n $(patsubst %.hpp,  %.hpp\n,$(INC))"
+	@echo -e "$(GRN)OBJECTS:$(BLU)\n $(patsubst %.cpp,  %.o\n,$(SRC))"
+	@echo -e "$(GRN)DEPENDS:$(BLU)\n $(patsubst %.cpp,  %.d\n,$(SRC))"
 
 .PHONY: all build debug release clean info
+
+########################################################################
+####################### PROGRESS INDICATION TOOLS ######################
+########################################################################
+
+RED := \033[31m
+GRN := \033[32m
+YLW := \033[33m
+BLU := \033[34m
+RST := \033[0m
+CLR := \033[2K
+
+STARTING  := echo -en "\r$(YLW)  0% $(BLU)STARTING $(RST)"
+CREATING  := "$(GRN)CREATING$(RST)"
+BUILDING  := "$(GRN)BUILDING$(RST)"
+DELETING  := "$(RED)DELETING$(RST)"
+FINISHED  := "$(BLU)FINISHED$(RST)"
+
+ifndef ECHO
+TOTAL  != $(MAKE) $(MAKECMDGOALS) --dry-run ECHO=FOUND | grep -c FOUND
+CURRENT = $(eval HIT_N != expr $(HIT_N) + 1)$(HIT_N)
+PERCENT = expr $(CURRENT) '*' 100 / $(TOTAL)
+ECHO    = echo -en "\r$(CLR)$(YLW)`expr " \`$(PERCENT)\`" \
+                                 : '.*\(...\)$$'`%$(RST)"
+endif
+
+########################################################################
+########################################################################
+########################################################################
