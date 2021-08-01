@@ -139,7 +139,6 @@ auto GenerateMoves() {
     }
 }
 
-
 int main() {
     std::cout << Board << std::endl;
     GenerateMoves<White, Pawns>();
@@ -149,10 +148,10 @@ int main() {
     GenerateMoves<White, Queens>();
     GenerateMoves<White, King>();
     std::cout << '\n';
-    // GenerateMoves<Black, Knights>();
-    // GenerateMoves<Black, Bishops>();
-    // GenerateMoves<Black, Rooks>();
-    // GenerateMoves<Black, Queens>();
-    // GenerateMoves<Black, King>();
+    GenerateMoves<Black, Knights>();
+    GenerateMoves<Black, Bishops>();
+    GenerateMoves<Black, Rooks>();
+    GenerateMoves<Black, Queens>();
+    GenerateMoves<Black, King>();
     return 0;
 }
