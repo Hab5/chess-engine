@@ -14,14 +14,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 template <auto... Args>
-struct Attack final { };
+struct GetAttack final { };
 
 ////////////////////////////////////////// PAWNS //////////////////////////////////////////////
 
 template <EnumColor Color, EnumPiece Piece>
-struct Attack<Color, Piece> final {
+struct GetAttack<Color, Piece> final {
 public:
-    [[nodiscard]] static constexpr auto On(std::size_t square) noexcept {
+    [[nodiscard]] static constexpr auto On(EnumSquare square) noexcept {
         static_assert(
             Piece == Pawns,
             "Use Attack<Piece> for anything other than `Pawns`\n"
@@ -30,31 +30,31 @@ public:
 private:
     static constexpr auto AttackTable = Generator::Attacks<Color, Pawns>::Get();
 
-     Attack() = delete;
-    ~Attack() = delete;
+     GetAttack() = delete;
+    ~GetAttack() = delete;
 };
 
 ////////////////////////////////////// KNIGHTS / KING /////////////////////////////////////////
 
 template <EnumPiece Piece>
-struct Attack<Piece> final {
+struct GetAttack<Piece> final {
 public:
-    [[nodiscard]] static constexpr auto On(std::size_t square) noexcept {
+    [[nodiscard]] static constexpr auto On(EnumSquare square) noexcept {
         return AttackTable[square];
     };
 private:
     static constexpr auto AttackTable = Generator::Attacks<Piece>::Get();
 
-     Attack() = delete;
-    ~Attack() = delete;
+     GetAttack() = delete;
+    ~GetAttack() = delete;
 };
 
 ///////////////////////////////////////// BISHOPS /////////////////////////////////////////////
 
 template <>
-struct Attack<Bishops> final {
+struct GetAttack<Bishops> final {
 public:
-    [[nodiscard]] static constexpr auto On(int square, std::uint64_t occupancy) noexcept {
+    [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
         occupancy &= MaskTable[square];
         occupancy *= Magics<Bishops>[square];
         occupancy >>= 64 - MaskBitCount[square];
@@ -65,16 +65,16 @@ private:
     static constexpr auto MaskTable      = Generator::Attacks<Bishops>::MaskTable();
     static constexpr auto MaskBitCount   = Generator::Attacks<Bishops>::MaskTableBitCount();
 
-     Attack() = delete;
-    ~Attack() = delete;
+     GetAttack() = delete;
+    ~GetAttack() = delete;
 };
 
 ////////////////////////////////////////// ROOKS //////////////////////////////////////////////
 
 template <>
-struct Attack<Rooks> final {
+struct GetAttack<Rooks> final {
 public:
-    [[nodiscard]] static constexpr auto On(int square, std::uint64_t occupancy) noexcept {
+    [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
         occupancy &= MaskTable[square];
         occupancy *= Magics<Rooks>[square];
         occupancy >>= 64 - MaskBitCount[square];
@@ -85,22 +85,22 @@ private:
     static constexpr auto MaskTable      = Generator::Attacks<Rooks>::MaskTable();
     static constexpr auto MaskBitCount   = Generator::Attacks<Rooks>::MaskTableBitCount();
 
-     Attack() = delete;
-    ~Attack() = delete;
+     GetAttack() = delete;
+    ~GetAttack() = delete;
 };
 
 ////////////////////////////////////////// QUEENS /////////////////////////////////////////////
 
 template <>
-struct Attack<Queens> final {
+struct GetAttack<Queens> final {
 public:
-    [[nodiscard]] static constexpr auto On(int square, std::uint64_t occupancy) noexcept {
-        return Attack<Bishops>::On(square, occupancy) | Attack<Rooks>::On(square, occupancy);
+    [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
+        return GetAttack<Bishops>::On(square, occupancy) | GetAttack<Rooks>::On(square, occupancy);
     }
 private:
 
-     Attack() = delete;
-    ~Attack() = delete;
+     GetAttack() = delete;
+    ~GetAttack() = delete;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,8 +136,8 @@ struct SliderAttacks final { };
 template <>
 struct SliderAttacks<Bishops> final {
 public:
-    [[nodiscard]] static constexpr auto On(std::size_t square, std::uint64_t blockers) noexcept {
-        std::uint64_t masks = 0ULL, mask = 0ULL;
+    [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard blockers) noexcept {
+        Bitboard masks = 0ULL, mask = 0ULL;
         int target_rank = square / 8, target_file = square % 8; // 2D Square Index
         int r = target_rank+1, f = target_file+1;
         while (r <= 7 && f <= 7) { // NE
@@ -163,8 +163,8 @@ public:
 template <>
 struct SliderAttacks<Rooks> final {
 public:
-    [[nodiscard]] static constexpr auto On(std::size_t square, std::uint64_t blockers) noexcept {
-        std::uint64_t masks = 0ULL, mask = 0ULL;
+    [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard blockers) noexcept {
+        Bitboard masks = 0ULL, mask = 0ULL;
         int target_rank = square / 8, target_file = square % 8; // 2D Square Index
         int r = target_rank+1, f = target_file;
         while (r <= 7) { // N

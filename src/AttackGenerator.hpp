@@ -24,9 +24,9 @@ public:
 
 private:
     [[nodiscard]] static constexpr auto Pawn() noexcept {
-        std::array<std::uint64_t, 64> attacks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
-            std::uint64_t pawn = 0ULL | (1ULL << square);
+        std::array<Bitboard, 64> attacks { };
+        for (EnumSquare square = a1; square <= h8; ++square) {
+            Bitboard pawn = Utils::MakeSquare(square);
             switch (Color) {
             case White:
                 if ((pawn << 9) & ~File_A) attacks[square] |= (pawn << 9); // NW
@@ -58,25 +58,25 @@ public:
 
 private:
     [[nodiscard]] static constexpr auto Knight() noexcept {
-        std::array<std::uint64_t, 64> attacks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
-            std::uint64_t knight = 0ULL | (1ULL << square);
+        std::array<Bitboard, 64> attacks { };
+        for (EnumSquare square = a1; square <= h8; ++square) {
+            Bitboard knight = Utils::MakeSquare(square);
             if ((knight << 17) & ~File_A)            attacks[square] |= (knight << 17); // NNE
             if ((knight << 15) & ~File_H)            attacks[square] |= (knight << 15); // NNW
-            if ((knight << 10) & ~(File_A | File_B)) attacks[square] |= (knight << 10); // NE
-            if ((knight << 6 ) & ~(File_G | File_H)) attacks[square] |= (knight << 6 ); // NW
+            if ((knight << 10) & ~(File_A | File_B)) attacks[square] |= (knight << 10); // NEE
+            if ((knight << 6 ) & ~(File_G | File_H)) attacks[square] |= (knight << 6 ); // NWW
 
             if ((knight >> 17) & ~File_H)            attacks[square] |= (knight >> 17); // SSW
             if ((knight >> 15) & ~File_A)            attacks[square] |= (knight >> 15); // SSE
-            if ((knight >> 10) & ~(File_G | File_H)) attacks[square] |= (knight >> 10); // SW
-            if ((knight >> 6 ) & ~(File_A | File_B)) attacks[square] |= (knight >> 6 ); // SE
+            if ((knight >> 10) & ~(File_G | File_H)) attacks[square] |= (knight >> 10); // SWW
+            if ((knight >> 6 ) & ~(File_A | File_B)) attacks[square] |= (knight >> 6 ); // SEE
         } return attacks;
     }
 
     [[nodiscard]] static constexpr auto King() noexcept {
-        std::array<std::uint64_t, 64> attacks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
-            std::uint64_t king = 0ULL | (1ULL << square);
+        std::array<Bitboard, 64> attacks { };
+        for (EnumSquare square = a1; square <= h8; ++square) {
+            Bitboard king = Utils::MakeSquare(square);
             if  (king << 8)            attacks[square] |= (king << 8); // N
             if ((king << 9) & ~File_A) attacks[square] |= (king << 9); // NE
             if ((king << 7) & ~File_H) attacks[square] |= (king << 7); // NW
@@ -100,8 +100,8 @@ template <>
 class Attacks<Bishops> final {
 public:
     [[nodiscard]] static constexpr auto MaskTable() noexcept {
-        std::array<std::uint64_t, 64> masks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
+        std::array<Bitboard, 64> masks { };
+        for (EnumSquare square = a1; square <= h8; ++square) {
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
             int r = target_rank+1, f = target_file+1;
             while (r <= 6 && f <= 6) masks[square] |= (1ULL << ((8*r++)+(f++))); // NE
@@ -115,16 +115,16 @@ public:
     }
 
     [[nodiscard]] static constexpr auto MaskTableBitCount() noexcept {
-        std::array<std::uint64_t, 64> masks = MaskTable();
+        std::array<Bitboard, 64> masks = MaskTable();
         std::array<int, 64> masks_bitcount = { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++)
+        for (EnumSquare square = a1; square <= h8; ++square)
             masks_bitcount[square] = Utils::BitCount(masks[square]);
         return masks_bitcount;
     }
 
     [[nodiscard]] static constexpr auto AttackTable() noexcept {
-        auto get_attacks = [](std::size_t square, std::uint64_t occupancy) constexpr {
-            std::uint64_t attacks = 0ULL, bishop = 0ULL;
+        auto get_attacks = [](EnumSquare square, Bitboard occupancy) constexpr {
+            Bitboard attacks = 0ULL, bishop = 0ULL;
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
             int r = target_rank+1, f = target_file+1;
             while (r <= 7 && f <= 7) { // NE
@@ -147,8 +147,8 @@ public:
 
         };
 
-        auto get_occupancy = [](int index, std::uint64_t attack_mask) constexpr {
-            std::uint64_t occupancy = 0ULL;
+        auto get_occupancy = [](int index, Bitboard attack_mask) constexpr {
+            Bitboard occupancy = 0ULL;
             const auto mask_population = Utils::BitCount(attack_mask);
             for (int count = 0; count < mask_population; count++) {
                 auto square = Utils::IndexLS1B(attack_mask);
@@ -160,10 +160,10 @@ public:
             return occupancy;
         };
 
-        std::array<std::uint64_t, 64> masks = MaskTable();
+        std::array<Bitboard, 64> masks      = MaskTable();
         std::array<int, 64> masks_bitcount  = MaskTableBitCount();
-        std::array<std::array<std::uint64_t, 512>, 64> attacks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
+        std::array<std::array<Bitboard, 512>, 64> attacks { };
+        for (EnumSquare square = a1; square <= h8; ++square) {
             auto attack_mask = masks[square];
             auto relevant_bits = masks_bitcount[square];
             int occupancy_idx = 1 << relevant_bits;
@@ -186,8 +186,8 @@ template <>
 class Attacks<Rooks> final {
 public:
     [[nodiscard]] static constexpr auto MaskTable() noexcept {
-        std::array<std::uint64_t, 64> masks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
+        std::array<Bitboard, 64> masks { };
+        for (EnumSquare square = a1; square <= h8; ++square) {
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
             int r = target_rank+1, f = target_file;
             while (r <= 6) masks[square] |= (1ULL << ((8*r++)+f)); // N
@@ -201,16 +201,16 @@ public:
     }
 
     [[nodiscard]] static constexpr auto MaskTableBitCount() noexcept {
-        std::array<std::uint64_t, 64> masks = MaskTable();
+        std::array<Bitboard, 64> masks = MaskTable();
         std::array<int, 64> masks_bitcount = { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++)
+        for (EnumSquare square = a1; square <= h8; ++square)
             masks_bitcount[square] = Utils::BitCount(masks[square]);
         return masks_bitcount;
     }
 
     [[nodiscard]] static constexpr auto AttackTable() noexcept {
-        auto get_attacks = [](std::size_t square, std::uint64_t occupancy) constexpr {
-            std::uint64_t attack = 0ULL, rook = 0ULL;
+        auto get_attacks = [](EnumSquare square, Bitboard occupancy) constexpr {
+            Bitboard attack = 0ULL, rook = 0ULL;
             int target_rank = square / 8, target_file = square % 8; // 2D Square Index
             int r = target_rank+1, f = target_file;
             while (r <= 7) { // N
@@ -232,8 +232,8 @@ public:
             return attack;
         };
 
-        auto get_occupancy = [](int index, std::uint64_t attack_mask) constexpr {
-            std::uint64_t occupancy = 0ULL;
+        auto get_occupancy = [](int index, Bitboard attack_mask) constexpr {
+            Bitboard occupancy = 0ULL;
             const auto mask_population = Utils::BitCount(attack_mask);
             for (int count = 0; count < mask_population; count++) {
                 auto square = Utils::IndexLS1B(attack_mask);
@@ -245,10 +245,10 @@ public:
             return occupancy;
         };
 
-        std::array<std::uint64_t, 64> masks = MaskTable();
+        std::array<Bitboard, 64> masks = MaskTable();
         std::array<int, 64> masks_bitcount  = MaskTableBitCount();
-        std::array<std::array<std::uint64_t, 4096>, 64> attacks { };
-        for (int square = EnumSquare::a1; square <= EnumSquare::h8; square++) {
+        std::array<std::array<Bitboard, 4096>, 64> attacks { };
+        for (EnumSquare square = a1; square <= h8; ++square) {
             auto attack_mask = masks[square];
             auto relevant_bits = masks_bitcount[square];
             int occupancy_idx = 1 << relevant_bits;

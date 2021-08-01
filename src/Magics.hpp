@@ -3,10 +3,10 @@
 #include "ChessEngine.hpp"
 
 template <EnumPiece Piece>
-constexpr std::array<std::uint64_t, 64> Magics {};
+constexpr std::array<Bitboard, 64> Magics {};
 
 template <>
-constexpr std::array<std::uint64_t, 64> Magics<Rooks> {
+constexpr std::array<Bitboard, 64> Magics<Rooks> {
     0xd800010804000a0ULL,  0x44004403000a000ULL,  0x3000904c0102000ULL,  0x2080044800100082ULL,
     0x2000e0008046010ULL,  0x100050004008208ULL,  0x1100209100220004ULL, 0xa08003a080144100ULL,
     0x4244800440002084ULL, 0x401004008830020ULL,  0x2002001042042080ULL, 0x2180801000845800ULL,
@@ -26,7 +26,7 @@ constexpr std::array<std::uint64_t, 64> Magics<Rooks> {
 };
 
 template <>
-constexpr std::array<std::uint64_t, 64> Magics<Bishops> {
+constexpr std::array<Bitboard, 64> Magics<Bishops> {
     0x2a120802119200ULL,   0x1844044092020080ULL, 0x20a2081300a40400ULL, 0x88184900000000ULL,
     0x401110404082000bULL, 0x1126900420218000ULL, 0x10883412211246ULL,   0x1008090080a04ULL,
     0x9400ec2048051100ULL, 0x2000044410a20200ULL, 0x402210301020020ULL,  0x1001510502000000ULL,

@@ -27,7 +27,7 @@ ChessBoard::ChessBoard(const std::string& fen) {
 
     output <<   "┌───────────────────┬───────────────────────────┐";
 
-    for (int square = EnumSquare::a1; square <= EnumSquare::h8 ; square++) {
+    for (EnumSquare square = a1; square <= h8 ; ++square) {
         // Prefix
         if (square % 8  == 0) output << "\n│ " + std::to_string(8-square/8) + " ";
 
@@ -35,7 +35,7 @@ ChessBoard::ChessBoard(const std::string& fen) {
         auto found = std::string();
         for (int color = White; color <= Black && found.empty(); color++)
             for (int piece = Pawns, idx = 0; piece <= King && !found[0]; piece++, idx++)
-                if (Utils::GetSquare(Utils::Flip<Vertical>(pieces[piece] & pieces[color]), square))
+                if (Utils::Flip<Vertical>(pieces[piece] & pieces[color]) & square)
                     found = (color ? fg_black : fg_white) + unicode[idx];
         output << (found.empty() ? std::string(fg_dim) + ". " : found + " ") << reset;
 

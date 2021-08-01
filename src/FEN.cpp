@@ -3,7 +3,6 @@
 
 void FEN::Load(const std::string& fen, ChessBoard& board) {
     std::istringstream stream(fen); std::string token;
-
     LoadPieces          ((stream >> token, token), board);
     LoadActiveColor     ((stream >> token, token), board);
     LoadCastlingRights  ((stream >> token, token), board);
@@ -16,7 +15,8 @@ void FEN::LoadPieces(std::string ranks, ChessBoard& board) {
     if (std::count(ranks.begin(), ranks.end(), '/') != 7)
         throw std::runtime_error("FEN: Syntax Error");
     const auto pieces_ascii = std::string("PNBRQKpnbrqk");
-    std::size_t slash, piece_idx, square = h8; ranks += '/';
+    std::size_t slash, piece_idx;
+    EnumSquare square = h8; ranks += '/';
     while ((slash = ranks.find('/')) != std::string::npos) {
         auto start_square = square;
         auto rank = ranks.substr(0, slash);
@@ -27,7 +27,7 @@ void FEN::LoadPieces(std::string ranks, ChessBoard& board) {
             } else if ((piece_idx = pieces_ascii.find(ch)) != std::string::npos) {
                 auto color = !std::isupper(ch);
                 auto piece = (piece_idx) - (color ? 6 : 0) + 2;
-                auto bitboard = Utils::SetSquare(0ULL, start_square - (square % 8));
+                auto bitboard = Utils::MakeSquare(start_square - (square % 8));
                 board.pieces[piece] |= bitboard, board.pieces[color] |= bitboard;
             } else throw std::runtime_error("FEN: Syntax Error");
             square--;
