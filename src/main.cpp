@@ -40,97 +40,58 @@ auto GenerateMoves() {
     auto set = (Board[Piece] & Board[Color]);
     while (set) {
         EnumSquare origin = Utils::PopLS1B(set);
-        std::cout << "{" << SquareIndex[origin] << "} | " << (Color?"B":"W");
+        std::cout << "{" << origin << "} | " << Color;
 
         if constexpr(Piece == Pawns) {
-            std::cout << " | Pawns   | -> "<< "[ ";
+            std::cout << " | " << Piece << " | -> "<< "[ ";
+            auto nothing_blocking = ~(Board[Color] & Board[!Color]);
             if constexpr(Color == White) {
                 EnumSquare dest = origin+8;
                 auto attacks = GetAttack<Color, Piece>::On(origin);
                 attacks &= (~Board[Color] | Board[!Color]);
-                while (attacks) {
-                    EnumSquare attack = Utils::PopLS1B(attacks);
-                    std::cout << SquareIndex[attack] << " ";
-                }
-                if ((dest & Rank_8) & ~(Board[Color] | Board[!Color])) {
-                    std::cout << SquareIndex[dest] << "Q "; // promotion here
-                    std::cout << SquareIndex[dest] << "R "; // promotion here
-                    std::cout << SquareIndex[dest] << "B "; // promotion here
-                    std::cout << SquareIndex[dest] << "N "; // promotion here
+                while (attacks)
+                    std::cout << SquareStr[Utils::PopLS1B(attacks)] << " ";
+                if ((dest & Rank_8) & nothing_blocking) {
+                    std::cout << SquareStr[dest] << "Q "; // promotion here
+                    std::cout << SquareStr[dest] << "R "; // promotion here
+                    std::cout << SquareStr[dest] << "B "; // promotion here
+                    std::cout << SquareStr[dest] << "N "; // promotion here
                 } else {
-                    if (dest & ~(Board[Color] | Board[!Color]))
-                        std::cout << SquareIndex[dest] << ' '; // single
-                    if ((origin & Rank_2)
-                     && (dest+8 & ~(Board[Color] | Board[!Color])))
-                        std::cout << SquareIndex[dest+8] << "D "; // double
+                    if (dest & nothing_blocking)
+                        std::cout << dest << ' '; // single
+                    if ((origin & Rank_2) && (dest+8 & nothing_blocking))
+                        std::cout << dest+8 << "D "; // double
                 }
             }
             std::cout << ']';
         }
 
-        if constexpr(Piece == Knights) {
+        else if constexpr(Piece == Knights || Piece == King) {
             auto attacks = GetAttack<Piece>::On(origin);
             attacks &= (~Board[Color] | Board[!Color]);
-            std::cout << " | Knight  | -> "<< "[ ";
-            while (attacks) {
-                EnumSquare attack = Utils::PopLS1B(attacks);
-                std::cout << SquareIndex[attack] << " ";
-            }
+            std::cout << " | " << Piece << " | -> "<< "[ ";
+            while (attacks)
+                std::cout << Utils::PopLS1B(attacks) << " ";
             std::cout << ']';
         }
 
-        if constexpr(Piece == Bishops) {
-            auto occupancy = (Board[Color] | Board[!Color]);
-            auto attacks = GetAttack<Piece>::On(origin, occupancy);
+        else if constexpr(Piece == Bishops || Piece == Rooks || Piece == Queens) {
+            Bitboard attacks; auto occupancy = (Board[Color] | Board[!Color]);
+            if (Piece == Queens)
+                attacks = GetAttack<Bishops>::On(origin, occupancy)
+                        | GetAttack<Rooks  >::On(origin, occupancy);
+            else if (Piece == Bishops || Piece == Rooks)
+                attacks = GetAttack<Piece>::On(origin, occupancy);
             attacks &= (~Board[Color] | Board[!Color]);
-            std::cout << " | Bishops | -> "<< "[ ";
-            while (attacks) {
-                EnumSquare attack = Utils::PopLS1B(attacks);
-                std::cout << SquareIndex[attack] << " ";
-            }
-            std::cout << ']';
-        }
-
-        if constexpr(Piece == Rooks) {
-            auto occupancy = (Board[Color] | Board[!Color]);
-            auto attacks = GetAttack<Piece>::On(origin, occupancy);
-            attacks &= (~Board[Color] | Board[!Color]);
-            std::cout << " | Rooks   | -> "<< "[ ";
-            while (attacks) {
-                EnumSquare attack = Utils::PopLS1B(attacks);
-                std::cout << SquareIndex[attack] << " ";
-            }
-            std::cout << ']';
-        }
-
-        if constexpr(Piece == Queens) {
-            auto occupancy = (Board[Color] | Board[!Color]);
-            auto attacks = GetAttack<Bishops>::On(origin, occupancy)
-                         | GetAttack<Rooks  >::On(origin, occupancy);
-            attacks &= (~Board[Color] | Board[!Color]);
-            std::cout << " | Queens  | -> "<< "[ ";
-            while (attacks) {
-                EnumSquare attack = Utils::PopLS1B(attacks);
-                std::cout << SquareIndex[attack] << " ";
-            }
-            std::cout << ']';
-        }
-
-
-        if constexpr(Piece == King) {
-            auto attacks = GetAttack<King>::On(origin);
-            attacks &= (~Board[Piece] | Board[!Color]);
-            std::cout << " | King    | -> "<< "[ ";
-            while (attacks) {
-                EnumSquare attack = Utils::PopLS1B(attacks);
-                std::cout << SquareIndex[attack] << " ";
-            }
+            std::cout << " | " << Piece << " | -> " << "[ ";
+            while (attacks)
+                std::cout << Utils::PopLS1B(attacks) << " ";
             std::cout << ']';
         }
         std::cout << "\n";
     }
 }
-#include <random>
+
 int main() {
     std::cout << Board << std::endl;
 
@@ -140,6 +101,10 @@ int main() {
     GenerateMoves<White, Rooks>();
     GenerateMoves<White, Queens>();
     GenerateMoves<White, King>();
+
+    Utils::Print(GetAttack<Bishops>::On(e4, Bitboard(0) | g2 | d5 | b1));
+    Utils::Print(GetAttack<Rooks>::On(e4, Bitboard(0) | e2 | a4 | f4 | e7));
+
 
     return 0;
 }

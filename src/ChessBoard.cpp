@@ -44,7 +44,7 @@ ChessBoard::ChessBoard(const std::string& fen) {
             std::stringstream ss;
             switch(square/8) {
             case 0: ss << "TOPLAY: " << (to_play ? "BLACK" : "WHITE"); break;
-            case 2: ss << "ENPASS: " << (en_passant > 0 ? SquareIndex[en_passant]: "-"); break;
+            case 2: ss << "ENPASS: " << (en_passant > 0 ? SquareStr[en_passant]: "-"); break;
             case 3: ss << "FMOVES: " << full_moves; break;
             case 4: ss << "HMOVES: " << half_moves; break;
             case 1: ss << "CASTLE: "

@@ -26,7 +26,8 @@ public:
             Piece == Pawns,
             "Use Attack<Piece> for anything other than `Pawns`\n"
         ); return AttackTable[square];
-    };
+    }
+
 private:
     static constexpr auto AttackTable = Generator::Attacks<Color, Pawns>::Get();
 
@@ -41,7 +42,8 @@ struct GetAttack<Piece> final {
 public:
     [[nodiscard]] static constexpr auto On(EnumSquare square) noexcept {
         return AttackTable[square];
-    };
+    }
+
 private:
     static constexpr auto AttackTable = Generator::Attacks<Piece>::Get();
 
@@ -60,10 +62,11 @@ public:
         occupancy >>= 64 - MaskBitCount[square];
         return AttackTable[square][occupancy];
     }
+
 private:
-    static constexpr auto AttackTable    = Generator::Attacks<Bishops>::AttackTable();
-    static constexpr auto MaskTable      = Generator::Attacks<Bishops>::MaskTable();
-    static constexpr auto MaskBitCount   = Generator::Attacks<Bishops>::MaskTableBitCount();
+    static constexpr auto AttackTable  = Generator::Attacks<Bishops>::AttackTable();
+    static constexpr auto MaskTable    = Generator::Attacks<Bishops>::MaskTable();
+    static constexpr auto MaskBitCount = Generator::Attacks<Bishops>::MaskTableBitCount();
 
      GetAttack() = delete;
     ~GetAttack() = delete;
@@ -80,10 +83,11 @@ public:
         occupancy >>= 64 - MaskBitCount[square];
         return AttackTable[square][occupancy];
     }
+
 private:
-    static constexpr auto AttackTable    = Generator::Attacks<Rooks>::AttackTable();
-    static constexpr auto MaskTable      = Generator::Attacks<Rooks>::MaskTable();
-    static constexpr auto MaskBitCount   = Generator::Attacks<Rooks>::MaskTableBitCount();
+    static constexpr auto AttackTable  = Generator::Attacks<Rooks>::AttackTable();
+    static constexpr auto MaskTable    = Generator::Attacks<Rooks>::MaskTable();
+    static constexpr auto MaskBitCount = Generator::Attacks<Rooks>::MaskTableBitCount();
 
      GetAttack() = delete;
     ~GetAttack() = delete;
@@ -95,7 +99,8 @@ template <>
 struct GetAttack<Queens> final {
 public:
     [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
-        return GetAttack<Bishops>::On(square, occupancy) | GetAttack<Rooks>::On(square, occupancy);
+        return GetAttack<Bishops>::On(square, occupancy)
+             | GetAttack<Rooks>::On(square, occupancy);
     }
 private:
 

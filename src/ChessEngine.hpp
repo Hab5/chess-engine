@@ -9,6 +9,10 @@ enum EnumColor: std::uint8_t {
     Black = 0x01
 };
 
+inline std::ostream& operator<<(std::ostream& os, const EnumColor& color) {
+    return os << std::string((color == White ? "White" : "Black"));
+}
+
 enum EnumPiece: std::uint8_t {
     Pawns   = 0x02,
     Knights = 0x03,
@@ -17,6 +21,18 @@ enum EnumPiece: std::uint8_t {
     Queens  = 0x06,
     King    = 0x07
 };
+
+inline std::ostream& operator<<(std::ostream& os, const EnumPiece& piece) {
+    return os << std::string((
+        piece == Pawns   ? "Pawns"   :
+        piece == Knights ? "Knights" :
+        piece == Bishops ? "Bishops" :
+        piece == Rooks   ? "Rooks"   :
+        piece == Queens  ? "Queens"  :
+        piece == King    ? "King"    : "None"
+    ));
+}
+
 
 enum EnumSquare: std::uint8_t {
     a1,b1,c1,d1,e1,f1,g1,h1,
@@ -29,7 +45,7 @@ enum EnumSquare: std::uint8_t {
     a8,b8,c8,d8,e8,f8,g8,h8
 };
 
-constexpr std::array<const char*, 65> SquareIndex {
+constexpr std::array<const char*, 65> SquareStr {
     "a1","b1","c1","d1","e1","f1","g1","h1",
     "a2","b2","c2","d2","e2","f2","g2","h2",
     "a3","b3","c3","d3","e3","f3","g3","h3",
@@ -74,7 +90,7 @@ enum EnumRank: std::uint64_t {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 inline std::ostream& operator<<(std::ostream& os, const EnumSquare& square) {
-    return (os << std::string(SquareIndex[square]));
+    return (os << std::string(SquareStr[square]));
 }
 
 inline constexpr EnumSquare& operator++(EnumSquare& square) noexcept {
@@ -82,8 +98,7 @@ inline constexpr EnumSquare& operator++(EnumSquare& square) noexcept {
 }
 
 inline constexpr EnumSquare operator++(EnumSquare& square, int) noexcept {
-  EnumSquare tmp = square; ++square;
-  return tmp;
+  EnumSquare tmp = square; ++square; return tmp;
 }
 
 inline constexpr EnumSquare& operator--(EnumSquare& square) noexcept {
@@ -91,8 +106,7 @@ inline constexpr EnumSquare& operator--(EnumSquare& square) noexcept {
 }
 
 inline constexpr EnumSquare operator--(EnumSquare& square, int) noexcept {
-  EnumSquare tmp = square; --square;
-  return tmp;
+  EnumSquare tmp = square; --square; return tmp;
 }
 
 inline constexpr EnumSquare operator%(EnumSquare square, int rhs) noexcept {
@@ -123,15 +137,15 @@ inline constexpr EnumSquare& operator-=(EnumSquare& square, int rhs) noexcept {
 using Bitboard = std::uint64_t;
 
 constexpr inline Bitboard& operator|=(Bitboard& bitboard, EnumSquare square) noexcept {
-    return bitboard |= (0ULL | (1ULL << square));
+    return bitboard |= (1ULL << square);
 }
 
 constexpr inline Bitboard& operator^=(Bitboard& bitboard, EnumSquare square) noexcept {
-    return bitboard ^= (0ULL | (1ULL << square));
+    return bitboard ^= (1ULL << square);
 }
 
 constexpr inline Bitboard operator&(Bitboard bitboard, EnumSquare square) noexcept {
-    return bitboard & (0ULL | (1ULL << square));
+    return bitboard & (1ULL << square);
 }
 
 constexpr inline Bitboard operator&(EnumSquare square, Bitboard bitboard) noexcept {
@@ -139,7 +153,7 @@ constexpr inline Bitboard operator&(EnumSquare square, Bitboard bitboard) noexce
 }
 
 constexpr inline Bitboard operator|(Bitboard bitboard, EnumSquare square) noexcept {
-    return bitboard | (0ULL | (1ULL << square));
+    return bitboard | (1ULL << square);
 }
 
 constexpr inline Bitboard operator|(EnumSquare square, Bitboard bitboard) noexcept {
@@ -147,7 +161,7 @@ constexpr inline Bitboard operator|(EnumSquare square, Bitboard bitboard) noexce
 }
 
 constexpr inline Bitboard operator^(Bitboard bitboard, EnumSquare square) noexcept {
-    return bitboard ^ (0ULL | (1ULL << square));
+    return bitboard ^ (1ULL << square);
 }
 
 constexpr inline Bitboard operator^(EnumSquare square, Bitboard bitboard) noexcept {
