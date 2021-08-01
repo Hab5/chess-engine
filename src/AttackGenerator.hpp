@@ -47,8 +47,8 @@ template <EnumPiece Piece>
 class Attacks<Piece> final {
 public:
     [[nodiscard]] static constexpr auto Get() noexcept {
-        if constexpr(Piece == Knights) return Attacks::Knight();
-        if constexpr(Piece == King   ) return Attacks::King();
+        if constexpr(Piece == EnumPiece::Knights) return Attacks::Knight();
+        if constexpr(Piece == EnumPiece::King   ) return Attacks::King();
     }
 
 private:
@@ -144,8 +144,8 @@ public:
             int occupancy_idx = 1 << relevant_bits;
             for (int idx = 0; idx < occupancy_idx; idx++) {
                 auto occupancy = get_occupancy(idx, attack_mask);
-                int magic_index = (occupancy * Magics<Bishops>[square]) >> (64-relevant_bits);
-                attacks[square][magic_index] = get_attack(square, occupancy);
+                int magic_idx = (occupancy * Magics<Bishops>[square]) >> (64-relevant_bits);
+                attacks[square][magic_idx] = get_attack(square, occupancy);
             }
         } return attacks;
     }
@@ -213,8 +213,8 @@ public:
             int occupancy_idx = 1 << relevant_bits;
             for (int idx = 0; idx < occupancy_idx; idx++) {
                 auto occupancy = get_occupancy(idx, attack_mask);
-                int magic_index = (occupancy * Magics<Rooks>[square]) >> (64-relevant_bits);
-                attacks[square][magic_index] = get_attack(square, occupancy);
+                int magic_idx = (occupancy * Magics<Rooks>[square]) >> (64-relevant_bits);
+                attacks[square][magic_idx] = get_attack(square, occupancy);
             }
         } return attacks;
     }
