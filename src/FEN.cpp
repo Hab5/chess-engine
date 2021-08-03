@@ -61,9 +61,10 @@ void FEN::LoadEnPassant(std::string en_passant, ChessBoard& board) {
     else if (en_passant.size() == 2) {
         auto it = std::find(SquareStr.begin(), SquareStr.end(), en_passant);
         if (it != SquareStr.end())
-            board.en_passant = std::distance(SquareStr.begin(), it);
+            board.en_passant = static_cast<EnumSquare>(
+                std::distance(SquareStr.begin(), it));
         else throw std::runtime_error("FEN: Syntax Error");
-    } else if (en_passant[0] == '-') board.en_passant = -1;
+    } else if (en_passant[0] == '-') board.en_passant = a1;
     else throw std::runtime_error("FEN: Syntax Error");
 }
 

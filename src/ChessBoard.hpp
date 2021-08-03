@@ -22,18 +22,19 @@ public:
         return pieces[query];
     }
 
-    [[nodiscard]] friend std::ostream& operator<<(std::ostream& os, const ChessBoard& board) noexcept {
-        return os << board.Show();
+    [[nodiscard]] friend std::ostream& operator<<(std::ostream& os, const ChessBoard& board) {
+        return os << board.PrettyPrint();
     }
 
+    [[nodiscard]] constexpr inline auto GetEnPassant() noexcept { return en_passant; }
+
 private:
-    [[nodiscard]] std::string Show() const noexcept;
+    [[nodiscard]] std::string PrettyPrint() const noexcept;
 
     std::array<std::uint64_t, 8> pieces { };
-    std::uint64_t                occupancy;
     std::bitset<4>               castling_rights;
+    EnumSquare                   en_passant;
     bool                         to_play;
-    int                          en_passant;
     int                          half_moves;
     int                          full_moves;
 

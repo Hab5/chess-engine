@@ -1,12 +1,9 @@
 #include "ChessBoard.hpp"
 #include "FEN.hpp"
 
-ChessBoard::ChessBoard(const std::string& fen) {
-    FEN::Load(fen, *this);
-    occupancy = pieces[White] | pieces[Black];
-}
+ChessBoard::ChessBoard(const std::string& fen) { FEN::Load(fen, *this); }
 
-[[nodiscard]] std::string ChessBoard::Show() const noexcept {
+[[nodiscard]] std::string ChessBoard::PrettyPrint() const noexcept {
     std::stringstream output;
 
     const std::array<std::string, 6> unicode { "♟", "♞", "♝", "♜", "♛", "♚" };
@@ -26,25 +23,19 @@ ChessBoard::ChessBoard(const std::string& fen) {
     };
 
     output <<   "┌───────────────────┬───────────────────────────┐";
-
     for (EnumSquare square = a1; square <= h8 ; ++square) {
-        // Prefix
         if (square % 8  == 0) output << "\n│ " + std::to_string(8-square/8) + " ";
-
-        // Board and Pieces
         auto found = std::string();
         for (int color = White; color <= Black && found.empty(); color++)
             for (int piece = Pawns, idx = 0; piece <= King && !found[0]; piece++, idx++)
                 if (Utils::Flip<Vertical>(pieces[piece] & pieces[color]) & square)
                     found = (color ? fg_black : fg_white) + unicode[idx];
         output << (found.empty() ? std::string(fg_dim) + ". " : found + " ") << reset;
-
-        // Information Pannel
         if ((square+1) % 8 == 0) output << "│ " << [&]() -> std::string {
             std::stringstream ss;
             switch(square/8) {
             case 0: ss << "TOPLAY: " << (to_play ? "BLACK" : "WHITE"); break;
-            case 2: ss << "ENPASS: " << (en_passant > 0 ? SquareStr[en_passant]: "-"); break;
+            case 2: ss << "ENPASS: " << (en_passant ? SquareStr[en_passant]: "-"); break;
             case 3: ss << "FMOVES: " << full_moves; break;
             case 4: ss << "HMOVES: " << half_moves; break;
             case 1: ss << "CASTLE: "
@@ -55,9 +46,7 @@ ChessBoard::ChessBoard(const std::string& fen) {
             default: return empty_padding(pannel_size);
             } return ss.str() + empty_padding(pannel_size - ss.str().size());
         }();
-
     }
-
     output << "\n│ ϴ a b c d e f g h │ " << empty_padding(pannel_size)
            << "\n└───────────────────┴───────────────────────────┘";
     return output.str();

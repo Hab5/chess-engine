@@ -27,13 +27,10 @@ private:
         std::array<Bitboard, 64> attacks { };
         for (EnumSquare square = a1; square <= h8; ++square) {
             Bitboard pawn = Utils::MakeSquare(square);
-            if constexpr(Color == White) {
-                attacks[square] |= ((pawn << 9) & ~File_A); // NW
-                attacks[square] |= ((pawn << 7) & ~File_H); // NE
-            } else if constexpr(Color == Black) {
-                attacks[square] |= ((pawn >> 7) & ~File_A); // SE
-                attacks[square] |= ((pawn >> 9) & ~File_H); // SW
-            }
+            attacks[square] = {
+                  Utils::ShiftTo<(Color == White ? North:South)|East>(pawn)
+                | Utils::ShiftTo<(Color == White ? North:South)|West>(pawn)
+            };
         } return attacks;
     }
 
@@ -56,29 +53,33 @@ private:
         std::array<Bitboard, 64> attacks { };
         for (EnumSquare square = a1; square <= h8; ++square) {
             Bitboard knight = Utils::MakeSquare(square);
-            attacks[square] |= ((knight << 17) & ~File_A);            // NNE
-            attacks[square] |= ((knight << 15) & ~File_H);            // NNW
-            attacks[square] |= ((knight << 10) & ~(File_A | File_B)); // NEE
-            attacks[square] |= ((knight << 6 ) & ~(File_G | File_H)); // NWW
-            attacks[square] |= ((knight >> 17) & ~File_H) ;           // SSW
-            attacks[square] |= ((knight >> 15) & ~File_A);            // SSE
-            attacks[square] |= ((knight >> 10) & ~(File_G | File_H)); // SWW
-            attacks[square] |= ((knight >> 6 ) & ~(File_A | File_B)); // SEE
+            attacks[square] = {
+                  Utils::ShiftTo<North|North|West>(knight)
+                | Utils::ShiftTo<North|North|East>(knight)
+                | Utils::ShiftTo<South|South|West>(knight)
+                | Utils::ShiftTo<South|South|East>(knight)
+                | Utils::ShiftTo<North| West|West>(knight)
+                | Utils::ShiftTo<North| East|East>(knight)
+                | Utils::ShiftTo<South| West|West>(knight)
+                | Utils::ShiftTo<South| East|East>(knight)
+            };
         } return attacks;
     }
 
     [[nodiscard]] static constexpr auto King() noexcept {
         std::array<Bitboard, 64> attacks { };
         for (EnumSquare square = a1; square <= h8; ++square) {
-            Bitboard king = Utils::MakeSquare(square);
-            attacks[square] |=  (king << 8);            // N
-            attacks[square] |= ((king << 9) & ~File_A); // NE
-            attacks[square] |= ((king << 7) & ~File_H); // NW
-            attacks[square] |= ((king << 1) & ~File_A); // E
-            attacks[square] |= ((king >> 1) & ~File_H); // W
-            attacks[square] |= ((king >> 9) & ~File_H); // SW
-            attacks[square] |= ((king >> 7) & ~File_A); // SE
-            attacks[square] |=  (king >> 8);            // S
+            Bitboard king    = Utils::MakeSquare(square);
+            attacks[square] = {
+                  Utils::ShiftTo<North     >(king)
+                | Utils::ShiftTo<East      >(king)
+                | Utils::ShiftTo<West      >(king)
+                | Utils::ShiftTo<South     >(king)
+                | Utils::ShiftTo<North|West>(king)
+                | Utils::ShiftTo<North|East>(king)
+                | Utils::ShiftTo<South|West>(king)
+                | Utils::ShiftTo<South|East>(king)
+            };
         } return attacks;
     }
 

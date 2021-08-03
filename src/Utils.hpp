@@ -52,15 +52,43 @@ public:
                     << "\n└───────────────────┴" + line_padding + "┘\n";
     }
 
-    [[nodiscard]] static inline constexpr auto BitCount(Bitboard bitboard) noexcept {
+    template<EnumCompass Shift>
+    [[nodiscard]] static constexpr auto ShiftTo(Bitboard bitboard) noexcept {
+        constexpr auto DIR = (Shift < 0 ? -Shift : Shift);
+
+        if constexpr(Shift == North) return  bitboard            << DIR;
+        if constexpr(Shift == East)  return (bitboard & ~File_H) << DIR;
+        if constexpr(Shift == West)  return (bitboard & ~File_A) >> DIR;
+        if constexpr(Shift == South) return  bitboard            >> DIR;
+
+        if constexpr(Shift == (North|North)) return bitboard << DIR;
+        if constexpr(Shift == (South|South)) return bitboard >> DIR;
+
+        if constexpr(Shift == (North|West)) return (bitboard & ~File_A) << DIR;
+        if constexpr(Shift == (North|East)) return (bitboard & ~File_H) << DIR;
+        if constexpr(Shift == (South|West)) return (bitboard & ~File_A) >> DIR;
+        if constexpr(Shift == (South|East)) return (bitboard & ~File_H) >> DIR;
+
+        if constexpr(Shift == (North|North|West)) return (bitboard & ~File_A) << DIR;
+        if constexpr(Shift == (North|North|East)) return (bitboard & ~File_H) << DIR;
+        if constexpr(Shift == (South|South|West)) return (bitboard & ~File_A) >> DIR;
+        if constexpr(Shift == (South|South|East)) return (bitboard & ~File_H) >> DIR;
+
+        if constexpr(Shift == (North|West|West)) return (bitboard & ~(File_A|File_B)) << DIR;
+        if constexpr(Shift == (North|East|East)) return (bitboard & ~(File_G|File_H)) << DIR;
+        if constexpr(Shift == (South|West|West)) return (bitboard & ~(File_A|File_B)) >> DIR;
+        if constexpr(Shift == (South|East|East)) return (bitboard & ~(File_G|File_H)) >> DIR;
+    }
+
+    [[nodiscard]] static constexpr auto BitCount(Bitboard bitboard) noexcept {
         return static_cast<EnumSquare>(__builtin_popcountll(bitboard));
     }
 
-    [[nodiscard]] static inline constexpr auto IndexLS1B(Bitboard bitboard) noexcept {
+    [[nodiscard]] static constexpr auto IndexLS1B(Bitboard bitboard) noexcept {
         return static_cast<EnumSquare>(bitboard ? __builtin_ctzll(bitboard):h8+1);
     }
 
-    [[nodiscard]] static inline constexpr auto PopLS1B(Bitboard& bitboard) noexcept {
+    [[nodiscard]] static constexpr auto PopLS1B(Bitboard& bitboard) noexcept {
         auto tmp = static_cast<EnumSquare>(bitboard ? __builtin_ctzll(bitboard):h8+1);
         bitboard ^= tmp;
         return tmp;
@@ -70,7 +98,7 @@ public:
         return 0ULL | (1ULL << square);
     }
 
-    template <EnumFlip Direction>
+    template <EnumFlip FlipDirection>
     [[nodiscard]] static constexpr Bitboard Flip(Bitboard bitboard) {
         constexpr auto flip_horizontal = [](Bitboard bitboard) noexcept {
             const Bitboard k1 = 0x5555555555555555;
@@ -86,7 +114,7 @@ public:
             return bitboard; // TODO
         };
 
-        switch (Direction) {
+        switch (FlipDirection) {
         case Vertical  : return __builtin_bswap64(bitboard);
         case Horizontal: return flip_horizontal(bitboard);
         case Diagonal  : return flip_diagonal(bitboard);

@@ -84,48 +84,77 @@ enum EnumRank: std::uint64_t {
     Rank_8 = 0xff00000000000000
 };
 
+enum EnumCompass: std::int8_t {
+    North =  8, South = -North,
+    East  =  1, West  = -East,
+
+    __NN  = North|North,
+    __NE  = North|East,
+    __NW  = North|West,
+    __SW  = South|West,
+    __SE  = South|East,
+    __SS  = South|South,
+
+    __NWW = North|West|West,
+    __NEE = North|East|East,
+    __NNW = North|North|West,
+    __NNE = North|North|East,
+
+    __SWW = South|West|West,
+    __SEE = South|East|East,
+    __SSW = South|South|West,
+    __SSE = South|South|East
+};
+
+constexpr inline EnumCompass operator+(EnumCompass lhs, EnumCompass rhs) noexcept {
+    return static_cast<EnumCompass>(static_cast<int>(lhs)+static_cast<int>(rhs));
+}
+
+constexpr inline EnumCompass operator|(EnumCompass lhs, EnumCompass rhs) noexcept {
+    return lhs+rhs;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// ENUMSQUARE OPERATOR OVERLOAD /////////////////////////////////
+////////////////////////////////// SQUARE OPERATOR OVERLOAD ///////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 inline std::ostream& operator<<(std::ostream& os, const EnumSquare& square) {
     return (os << std::string(SquareStr[square]));
 }
 
-inline constexpr EnumSquare& operator++(EnumSquare& square) noexcept {
+constexpr inline EnumSquare& operator++(EnumSquare& square) noexcept {
     return square = static_cast<EnumSquare>(static_cast<int>(square)+1);
 }
 
-inline constexpr EnumSquare operator++(EnumSquare& square, int) noexcept {
+constexpr inline EnumSquare operator++(EnumSquare& square, int) noexcept {
   EnumSquare tmp = square; ++square; return tmp;
 }
 
-inline constexpr EnumSquare& operator--(EnumSquare& square) noexcept {
+constexpr inline EnumSquare& operator--(EnumSquare& square) noexcept {
     return square = static_cast<EnumSquare>(static_cast<int>(square)-1);
 }
 
-inline constexpr EnumSquare operator--(EnumSquare& square, int) noexcept {
+constexpr inline EnumSquare operator--(EnumSquare& square, int) noexcept {
   EnumSquare tmp = square; --square; return tmp;
 }
 
-inline constexpr EnumSquare operator%(EnumSquare square, int rhs) noexcept {
+constexpr inline EnumSquare operator%(EnumSquare square, int rhs) noexcept {
     return static_cast<EnumSquare>(static_cast<int>(square)%rhs);
 }
 
-inline constexpr EnumSquare operator+(EnumSquare square, int rhs) noexcept {
+constexpr inline EnumSquare operator+(EnumSquare square, int rhs) noexcept {
     return static_cast<EnumSquare>(static_cast<int>(square)+rhs);
 }
 
-inline constexpr EnumSquare operator-(EnumSquare square, int rhs) noexcept {
+constexpr inline EnumSquare operator-(EnumSquare square, int rhs) noexcept {
     return static_cast<EnumSquare>(static_cast<int>(square)-rhs);
 }
 
-inline constexpr EnumSquare& operator+=(EnumSquare& square, int rhs) noexcept {
+constexpr inline EnumSquare& operator+=(EnumSquare& square, int rhs) noexcept {
     return square = square + rhs;
 }
 
-inline constexpr EnumSquare& operator-=(EnumSquare& square, int rhs) noexcept {
+constexpr inline EnumSquare& operator-=(EnumSquare& square, int rhs) noexcept {
     return square = square - rhs;
 }
 
@@ -166,6 +195,10 @@ constexpr inline Bitboard operator^(Bitboard bitboard, EnumSquare square) noexce
 
 constexpr inline Bitboard operator^(EnumSquare square, Bitboard bitboard) noexcept {
     return bitboard ^ square;
+}
+
+constexpr inline Bitboard operator|(EnumSquare lhs, EnumSquare rhs) {
+    return (Bitboard(0) | lhs) | rhs;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
