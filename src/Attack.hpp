@@ -64,9 +64,9 @@ public:
     }
 
 private:
+    static constexpr auto MaskBitCount = Generator::Attacks<Bishops>::MaskTableBitCount();
     static constexpr auto AttackTable  = Generator::Attacks<Bishops>::AttackTable();
     static constexpr auto MaskTable    = Generator::Attacks<Bishops>::MaskTable();
-    static constexpr auto MaskBitCount = Generator::Attacks<Bishops>::MaskTableBitCount();
 
      GetAttack() = delete;
     ~GetAttack() = delete;

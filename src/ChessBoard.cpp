@@ -13,7 +13,7 @@ ChessBoard::ChessBoard(const std::string& fen) { FEN::Load(fen, *this); }
     const auto fg_dim   = "\033[38;5;242m";
     const auto reset    = "\033[0m";
 
-    const auto pannel_size = 25;
+    const auto pannel_size = 14;
 
     auto empty_padding = [](int sz) -> std::string {
         std::stringstream ss;
@@ -22,7 +22,7 @@ ChessBoard::ChessBoard(const std::string& fen) { FEN::Load(fen, *this); }
         return ss.str();
     };
 
-    output <<   "┌───────────────────┬───────────────────────────┐";
+    output <<   "┌───────────────────┬────────────────┐";
     for (EnumSquare square = a1; square <= h8 ; ++square) {
         if (square % 8  == 0) output << "\n│ " + std::to_string(8-square/8) + " ";
         auto found = std::string();
@@ -48,6 +48,6 @@ ChessBoard::ChessBoard(const std::string& fen) { FEN::Load(fen, *this); }
         }();
     }
     output << "\n│ ϴ a b c d e f g h │ " << empty_padding(pannel_size)
-           << "\n└───────────────────┴───────────────────────────┘";
+           << "\n└───────────────────┴────────────────┘";
     return output.str();
 }

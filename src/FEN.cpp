@@ -42,17 +42,18 @@ void FEN::LoadActiveColor(std::string active_color, ChessBoard& board) {
 }
 
 void FEN::LoadCastlingRights(std::string castling_rights, ChessBoard& board) {
-    if (castling_rights.size() == 1) {
-        if ( castling_rights[0] != '-' )
+    if (castling_rights.size() > 4) {
             throw std::runtime_error("FEN: Syntax Error");
         return;
-    } else if (castling_rights.size() != 4
-        || ((castling_rights[0] != 'K' && castling_rights[0] != '-')
-        ||  (castling_rights[1] != 'Q' && castling_rights[1] != '-')
-        ||  (castling_rights[2] != 'k' && castling_rights[2] != '-')
-        ||  (castling_rights[3] != 'q' && castling_rights[3] != '-')))
-        throw std::runtime_error("FEN: Syntax Error");
-    else for (int i = 0; i < 4; i++) board.castling_rights[i] = (castling_rights[i] != '-');
+    } else {
+        std::string rights_ascii = "KQkq"; std::size_t idx = 0;
+        for (auto c: castling_rights) {
+            if (c == '-') continue;
+            if ((idx = rights_ascii.find(c)) == std::string::npos)
+                throw std::runtime_error("FEN: Syntax Error");
+            else board.castling_rights[idx] = 1;
+        }
+    }
 }
 
 void FEN::LoadEnPassant(std::string en_passant, ChessBoard& board) {
