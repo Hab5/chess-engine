@@ -13,6 +13,10 @@ inline std::ostream& operator<<(std::ostream& os, const EnumColor& color) {
     return os << std::string((color == White ? "White" : "Black"));
 }
 
+constexpr inline auto operator~(EnumColor color) {
+    return EnumColor(!color);
+}
+
 enum EnumPiece: std::uint8_t {
     Pawns   = 0x02,
     Knights = 0x03,

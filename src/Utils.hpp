@@ -89,7 +89,7 @@ public:
     }
 
     [[nodiscard]] static constexpr auto PopLS1B(Bitboard& bitboard) noexcept {
-        auto tmp = static_cast<EnumSquare>(bitboard ? __builtin_ctzll(bitboard):0);
+        auto tmp = static_cast<EnumSquare>(__builtin_ctzll(bitboard));
         bitboard ^= tmp;
         return tmp;
     }

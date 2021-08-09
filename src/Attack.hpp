@@ -21,7 +21,7 @@ struct GetAttack final { };
 template <EnumColor Color, EnumPiece Piece>
 struct GetAttack<Color, Piece> final {
 public:
-    [[nodiscard]] static constexpr auto On(EnumSquare square) noexcept {
+    [[nodiscard]] static inline constexpr auto On(EnumSquare square) noexcept {
         static_assert(
             Piece == Pawns,
             "Use Attack<Piece> for anything other than `Pawns`\n"
@@ -40,7 +40,7 @@ private:
 template <EnumPiece Piece>
 struct GetAttack<Piece> final {
 public:
-    [[nodiscard]] static constexpr auto On(EnumSquare square) noexcept {
+    [[nodiscard]] static inline constexpr auto On(EnumSquare square) noexcept {
         return AttackTable[square];
     }
 
@@ -56,7 +56,7 @@ private:
 template <>
 struct GetAttack<Bishops> final {
 public:
-    [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
+    [[nodiscard]] static inline constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
         occupancy &= MaskTable[square];
         occupancy *= Magics<Bishops>[square];
         occupancy >>= 64 - MaskBitCount[square];
@@ -77,7 +77,7 @@ private:
 template <>
 struct GetAttack<Rooks> final {
 public:
-    [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
+    [[nodiscard]] static inline constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
         occupancy &= MaskTable[square];
         occupancy *= Magics<Rooks>[square];
         occupancy >>= 64 - MaskBitCount[square];
@@ -98,7 +98,7 @@ private:
 template <>
 struct GetAttack<Queens> final {
 public:
-    [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
+    [[nodiscard]] static inline constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
         return GetAttack<Bishops>::On(square, occupancy)
              | GetAttack<Rooks>::On(square, occupancy);
     }
