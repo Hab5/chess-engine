@@ -100,7 +100,7 @@ struct GetAttack<Queens> final {
 public:
     [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
         return GetAttack<Bishops>::On(square, occupancy)
-             | GetAttack<Rooks>::On(square, occupancy);
+             | GetAttack<Rooks  >::On(square, occupancy);
     }
 private:
 

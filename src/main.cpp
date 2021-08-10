@@ -116,9 +116,9 @@ public:
     template<EnumColor Color> __attribute__((always_inline))
     static inline auto Make(Move& move) noexcept {
         const auto [piece, origin, target, flags] = Move::Decode(move);
-        constexpr auto OtherColor        = ~Color;
+        constexpr auto OtherColor = ~Color;
 
-        Board.en_passant = a1;
+        Board.en_passant = static_cast<EnumSquare>(0);
         if (flags & Capture) {
             std::for_each(Board.pieces.begin()+2, Board.pieces.end(),
             [&, t=target](auto& set) { if (set & t) Board[OtherColor] ^= (set ^= t, t); });
@@ -172,7 +172,6 @@ public:
 
         auto king_square = Utils::IndexLS1B(Board[King] & Board[Color]);
         return !IsSquareAttackedBy<OtherColor>(king_square);
-        // return true;
     }
 
     friend inline std::ostream& operator<<(std::ostream& os, const Move& move) {
@@ -212,8 +211,8 @@ public:
         std::uint64_t nodes = 0;
         if (depth == 0) return 1ULL;
 
-        ChessBoard Old = Board;
         constexpr auto Other = ~Color;
+        ChessBoard Old = Board;
         auto [MoveList, nmoves] = MoveGen::All<Color>();
         for (auto move = 0; move < nmoves; move++) {
             if (Move::Make<Color>(MoveList[move]))
@@ -227,8 +226,8 @@ public:
 private:
     template <EnumColor Color, EnumPiece Piece> __attribute__((always_inline))
     static inline auto GenerateMoves(std::array<Move, 218>::iterator& Moves) noexcept {
-        auto set              = (Board[Color] & Board[ Piece]);
-        auto occupancy        = (Board[Color] | Board[!Color]);
+        auto set       = (Board[Color] & Board[ Piece]);
+        auto occupancy = (Board[Color] | Board[!Color]);
 
         while (set) {
         EnumSquare origin = Utils::PopLS1B(set);
