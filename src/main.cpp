@@ -60,7 +60,7 @@ std::ostream& operator<<(std::ostream& os, const EnumMoveFlags& flag) {
 }
 
 #define POSITION "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"
-ChessBoard Board(POSITION);
+ChessBoard Board(STARTING_POSITION);
 
 template <EnumColor Color>
 inline bool IsSquareAttackedBy(EnumSquare square) noexcept {
@@ -113,30 +113,30 @@ public:
         };
     }
 
-    __attribute__((always_inline))
+    template<EnumColor Color> __attribute__((always_inline))
     static inline auto Make(Move& move) noexcept {
         const auto [piece, origin, target, flags] = Move::Decode(move);
-
-        const auto color = Board.to_play;
-        const auto other = !color;
+        constexpr auto OtherColor        = ~Color;
+        constexpr auto EnPassantMask     =  Color == White ? South : North;
+        constexpr auto CastleKingMask    =  Color == White ? (h1|f1) : (h8|f8);
+        constexpr auto CastleQueenMask   =  Color == White ? (a1|d1) : (a8|d8);
+        constexpr auto CastlingRightsIdx =  Color == White ? 0 : 2;
 
         Board.en_passant = a1;
         if (flags & Capture) {
             std::for_each(Board.pieces.begin()+2, Board.pieces.end(),
-            [&, t=target](auto& set) { if (set & t) Board[other] ^= (set ^= t, t); });
+            [&, t=target](auto& set) { if (set & t) Board[OtherColor] ^= (set ^= t, t); });
         } else if (flags == DoublePawnPush) {
-            Board.en_passant = target + (color == White ? South : North);
+            Board.en_passant = target + EnPassantMask;
         } else if (flags == CastleKing) {
-            const auto mask = (color == White ? (h1|f1) : (h8|f8));
-            Board[color] ^= (Board[Rooks] ^= mask, mask);
+            Board[Color] ^= (Board[Rooks] ^= CastleKingMask, CastleKingMask);
         } else if (flags == CastleQueen) {
-            const auto mask = (color == White ? (a1|d1) : (a8|d8));
-            Board[color] ^= (Board[Rooks] ^= mask, mask);
+            Board[Color] ^= (Board[Rooks] ^= CastleQueenMask, CastleQueenMask);
         }
 
         if (flags == EnPassant) {
-            const auto to_erase = target + (color == White ? South : North);
-            Board[other] ^= (Board[Pawns] ^= to_erase, to_erase);
+            const auto to_erase = target + EnPassantMask;
+            Board[OtherColor] ^= (Board[Pawns] ^= to_erase, to_erase);
         }
 
 
@@ -151,14 +151,14 @@ public:
         }
 
         auto mask = (origin|target);
-        Board[color] ^= (Board[piece] ^= mask, mask);
+        Board[Color] ^= (Board[piece] ^= mask, mask);
 
         if (piece == King) {
-            auto idx = color == White ? 0:2;
-            Board.castling_rights[idx] = Board.castling_rights[idx+1] = 0;
+            Board.castling_rights[CastlingRightsIdx]   = 0;
+            Board.castling_rights[CastlingRightsIdx+1] = 0;
         }
         if (piece == Rooks) {
-            if (color == White) {
+            if constexpr (Color == White) {
                 if (origin == h1) Board.castling_rights[0] = 0; // K
                 if (origin == a1) Board.castling_rights[1] = 0; // Q
             } else {
@@ -169,10 +169,8 @@ public:
 
         Board.to_play = static_cast<EnumColor>(!Board.to_play);
 
-        auto king_square = Utils::IndexLS1B(Board[King] & Board[color]);
-        return (color == White ?
-                !IsSquareAttackedBy<Black>(king_square) :
-                !IsSquareAttackedBy<White>(king_square));
+        auto king_square = Utils::IndexLS1B(Board[King] & Board[Color]);
+        return !IsSquareAttackedBy<OtherColor>(king_square);
     }
 
     friend inline std::ostream& operator<<(std::ostream& os, const Move& move) {
@@ -216,7 +214,7 @@ public:
         constexpr auto Other = ~Color;
         auto [MoveList, nmoves] = MoveGen::All<Color>();
         for (auto move = 0; move < nmoves; move++) {
-            if (Move::Make(MoveList[move]))
+            if (Move::Make<Color>(MoveList[move]))
                 nodes += Perft<Other>(depth-1);
             Board = Old;
         }
