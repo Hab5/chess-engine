@@ -15,20 +15,20 @@
 #include <iomanip>
 
 enum EnumMoveFlags {
-    Quiet                  = 0b0000,
-    DoublePawnPush         = 0b0001,
-    CastleKing             = 0b0010,
-    CastleQueen            = 0b0011,
-    Capture                = 0b0100,
-    EnPassant              = 0b0101,
-    KnightPromotion        = 0b1000,
-    BishopPromotion        = 0b1001,
-    RookPromotion          = 0b1010,
-    QueenPromotion         = 0b1011,
-    KnightPromotionCapture = 0b1100,
-    BishopPromotionCapture = 0b1101,
-    RookPromotionCapture   = 0b1110,
-    QueenPromotionCapture  = 0b1111,
+    Quiet            = 0b0000,
+    DoublePush       = 0b0001,
+    CastleKing       = 0b0010,
+    CastleQueen      = 0b0011,
+    Capture          = 0b0100,
+    EnPassant        = 0b0101,
+    PromotionKnight  = 0b1000,
+    PromotionBishop  = 0b1001,
+    PromotionRook    = 0b1010,
+    PromotionQueen   = 0b1011,
+    XPromotionKnight = 0b1100,
+    XPromotionBishop = 0b1101,
+    XPromotionRook   = 0b1110,
+    XPromotionQueen  = 0b1111,
 
 };
 
@@ -40,59 +40,29 @@ constexpr inline EnumMoveFlags operator|(EnumMoveFlags lhs, EnumMoveFlags rhs) n
     return lhs+rhs;
 }
 
-std::ostream& operator<<(std::ostream& os, const EnumMoveFlags& flag) {
-    return os << std::string((
-        flag == Quiet                  ? "Quiet"                   :
-        flag == DoublePawnPush         ? "DoublePawnPush"          :
-        flag == CastleKing             ? "CastleKing"              :
-        flag == CastleQueen            ? "CastleQueen"             :
-        flag == Capture                ? "Capture"                 :
-        flag == EnPassant              ? "EnPassant"               :
-        flag == KnightPromotion        ? "KnightPromotion"         :
-        flag == BishopPromotion        ? "BishopPromotion"         :
-        flag == RookPromotion          ? "RookPromotion"           :
-        flag == QueenPromotion         ? "QueenPromotion"          :
-        flag == KnightPromotionCapture ? "Capture|KnightPromotion" :
-        flag == BishopPromotionCapture ? "Capture|BishopPromotion" :
-        flag == RookPromotionCapture   ? "Capture|RookPromotion"   :
-        flag == QueenPromotionCapture  ? "Capture|QueenPromotion"  : "None"
-    ));
-}
-
-#define POSITION "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"
+#define POSITION "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"
 ChessBoard Board(STARTING_POSITION);
 
 template <EnumColor Color>
-inline bool IsSquareAttackedBy(EnumSquare square) noexcept {
-    constexpr auto Other = ~Color;
-    const auto occ = Board[White] | Board[Black];
+inline auto InCheck(EnumSquare square) noexcept {
+    const auto enemies   = Board[~Color];
+    const auto occupancy = Board[ Color] | enemies;
     return (
-        GetAttack<Other, Pawns>::On(square     ) & (Board[Pawns  ] & Board[Color]) ? true :
-        GetAttack<Knights     >::On(square     ) & (Board[Knights] & Board[Color]) ? true :
-        GetAttack<Bishops     >::On(square, occ) & (Board[Bishops] & Board[Color]) ? true :
-        GetAttack<Rooks       >::On(square, occ) & (Board[Rooks  ] & Board[Color]) ? true :
-        GetAttack<Queens      >::On(square, occ) & (Board[Queens ] & Board[Color]) ? true :
-        GetAttack<King        >::On(square     ) & (Board[King   ] & Board[Color]) ? true :
+        GetAttack<Color, Pawns>::On(square           ) & (Board[Pawns  ] & enemies) ? true :
+        GetAttack<Knights     >::On(square           ) & (Board[Knights] & enemies) ? true :
+        GetAttack<Bishops     >::On(square, occupancy) & (Board[Bishops] & enemies) ? true :
+        GetAttack<Rooks       >::On(square, occupancy) & (Board[Rooks  ] & enemies) ? true :
+        GetAttack<Queens      >::On(square, occupancy) & (Board[Queens ] & enemies) ? true :
         false
     );
 }
 
-template <EnumColor Color>
-inline std::uint64_t GetAttackedSquares() noexcept {
-    std::uint64_t attacked = 0ULL;
-    for (EnumSquare square = EnumSquare::a1; square <= EnumSquare::h8; ++square)
-        if (IsSquareAttackedBy<Color>(square))
-            attacked |= square;
-    return attacked;
-}
-
-struct Move final {
+struct alignas(4) Move final {
     std::uint16_t encoded;
     EnumPiece     piece;
-public:
 
     template <EnumPiece Piece>
-    [[nodiscard]] static constexpr auto Encode
+    [[nodiscard]] static inline constexpr auto Encode
     (EnumSquare origin, EnumSquare target, EnumMoveFlags flags) noexcept {
         return Move {
         .encoded = static_cast<std::uint16_t>((
@@ -112,54 +82,54 @@ public:
             static_cast<EnumMoveFlags>((move.encoded >> 12) & 0xf)   // flags
         };
     }
+    
+    template<EnumColor Color> //__attribute__((always_inline))
+    static auto Make(Move& move) noexcept {
+        constexpr auto Allies = Color, Enemies = ~Color;
+        constexpr auto Castle = Allies == White ? (h1|f1) : (h8|f8);
+        constexpr auto Down = Allies == White ? South : North;
 
-    template<EnumColor Color> __attribute__((always_inline))
-    static inline auto Make(Move& move) noexcept {
         const auto [piece, origin, target, flags] = Move::Decode(move);
-        constexpr auto OtherColor = ~Color;
 
-        Board.en_passant = static_cast<EnumSquare>(0);
-        if (flags & Capture) {
-            std::for_each(Board.pieces.begin()+2, Board.pieces.end(),
-            [&, t=target](auto& set) { if (set & t) Board[OtherColor] ^= (set ^= t, t); });
-        } else if (flags == DoublePawnPush) {
-            constexpr auto EnPassantMask = Color == White ? South : North;
-            Board.en_passant = target + EnPassantMask;
-        } else if (flags == CastleKing) {
-            constexpr auto CastleKingMask =  Color == White ? (h1|f1) : (h8|f8);
-            Board[Color] ^= (Board[Rooks] ^= CastleKingMask, CastleKingMask);
-        } else if (flags == CastleQueen) {
-            constexpr auto CastleQueenMask =  Color == White ? (a1|d1) : (a8|d8);
-            Board[Color] ^= (Board[Rooks] ^= CastleQueenMask, CastleQueenMask);
+        Board.to_play    = Enemies;
+        Board.en_passant = EnumSquare(0);
+
+        if (flags == Quiet) {
+            auto move_mask = (origin|target);
+            Board[Allies] ^= (Board[piece] ^= move_mask, move_mask);
+            if (piece == King) {
+                constexpr auto CastlingRightsIdx = Allies == White ? 0 : 2;
+                Board.castling_rights[CastlingRightsIdx]   = 0;
+                Board.castling_rights[CastlingRightsIdx+1] = 0;
+            } else if (piece == Rooks) {
+                if constexpr (Allies == White) {
+                    if (origin == h1) Board.castling_rights[0] = 0; // K
+                    if (origin == a1) Board.castling_rights[1] = 0; // Q
+                } else {
+                    if (origin == h8) Board.castling_rights[2] = 0; // k
+                    if (origin == a8) Board.castling_rights[3] = 0; // q
+                }
+            }
+            return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
         }
-
-        if (flags == EnPassant) {
-            constexpr auto EnPassantMask = Color == White ? South : North;
-            const auto to_erase = target + EnPassantMask;
-            Board[OtherColor] ^= (Board[Pawns] ^= to_erase, to_erase);
-        }
-
-
-        if (flags & KnightPromotion) {
-            const auto promoted_to =
-              flags == BishopPromotion || flags == BishopPromotionCapture ? Bishops :
-              flags == RookPromotion   || flags == RookPromotionCapture   ? Rooks   :
-              flags == QueenPromotion  || flags == QueenPromotionCapture  ? Queens  : Knights;
-            Board[promoted_to] |= target;
-            Board[Pawns] ^= target;
-
-        }
-
-        auto mask = (origin|target);
-        Board[Color] ^= (Board[piece] ^= mask, mask);
-
-        if (piece == King) {
-            constexpr auto CastlingRightsIdx = Color == White ? 0 : 2;
+        else if (flags & Capture) std::for_each(&Board[Pawns], &Board[King],
+            [&, t=target](auto& set) { if (set & t) Board[Enemies] ^= (set ^= t, t); });
+        else if (flags == DoublePush ) Board.en_passant = target + Down;
+        else if (flags == CastleKing ) Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
+        else if (flags == CastleQueen) Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
+        if (flags == EnPassant) Board[Enemies] ^= (Board[Pawns] ^= target+Down, target+Down);
+        if (flags & PromotionKnight) {
+            const auto promotion =
+                flags == PromotionBishop || flags == XPromotionBishop ? Bishops :
+                flags == PromotionRook   || flags == XPromotionRook   ? Rooks   :
+                flags == PromotionQueen  || flags == XPromotionQueen  ? Queens  : Knights;
+            Board[promotion] |= target; Board[Pawns] ^= target;
+        } if (piece == King) {
+            constexpr auto CastlingRightsIdx = Allies == White ? 0 : 2;
             Board.castling_rights[CastlingRightsIdx]   = 0;
             Board.castling_rights[CastlingRightsIdx+1] = 0;
-        }
-        if (piece == Rooks) {
-            if constexpr (Color == White) {
+        } if (piece == Rooks) {
+            if constexpr (Allies == White) {
                 if (origin == h1) Board.castling_rights[0] = 0; // K
                 if (origin == a1) Board.castling_rights[1] = 0; // Q
             } else {
@@ -168,10 +138,10 @@ public:
             }
         }
 
-        Board.to_play = static_cast<EnumColor>(!Board.to_play);
+        auto move_mask = (origin|target);
+        Board[Allies] ^= (Board[piece] ^= move_mask, move_mask);
 
-        auto king_square = Utils::IndexLS1B(Board[King] & Board[Color]);
-        return !IsSquareAttackedBy<OtherColor>(king_square);
+        return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
     }
 
     friend inline std::ostream& operator<<(std::ostream& os, const Move& move) {
@@ -207,23 +177,32 @@ public:
     }
 
     template <EnumColor Color>
-    static inline std::uint64_t Perft(int depth) noexcept {
+    static std::uint64_t Perft(int depth) noexcept {
+        constexpr auto Other = ~Color;
         std::uint64_t nodes = 0;
         if (depth == 0) return 1ULL;
-
-        constexpr auto Other = ~Color;
         ChessBoard Old = Board;
         auto [MoveList, nmoves] = MoveGen::All<Color>();
         for (auto move = 0; move < nmoves; move++) {
             if (Move::Make<Color>(MoveList[move]))
                 nodes += Perft<Other>(depth-1);
             Board = Old;
-        }
-
-        return nodes;
+        } return nodes;
     }
 
 private:
+
+    // template <EnumColor Color, EnumPiece Piece> __attribute__((always_inline))
+    // static inline auto GenerateLegal(std::array<Move, 218>::iterator& Moves) noexcept {
+    //     auto set       = (Board[Color] & Board[ Piece]);
+    //     auto occupancy = (Board[Color] | Board[~Color]);
+    //     auto occupancy_no_king = occupancy ^ Utils::IndexLS1B(Board[King] & Board[Color]);
+    //     while (set) {
+    //         if constexpr Piece =
+    //     }
+    // }
+
+
     template <EnumColor Color, EnumPiece Piece> __attribute__((always_inline))
     static inline auto GenerateMoves(std::array<Move, 218>::iterator& Moves) noexcept {
         auto set       = (Board[Color] & Board[ Piece]);
@@ -232,40 +211,45 @@ private:
         while (set) {
         EnumSquare origin = Utils::PopLS1B(set);
 
+        /////////////////////////////////////// PAWNS ////////////////////////////////////////
         if constexpr(Piece == Pawns) {
-            constexpr auto promotion_rank = (Color == White ? Rank_8 : Rank_1);
-            constexpr auto starting_rank  = (Color == White ? Rank_2 : Rank_7);
-            constexpr auto up             = (Color == White ? North  : South );
+            constexpr auto RelativeUp    = (Color == White ? North  : South );
+            constexpr auto StartingRank  = (Color == White ? Rank_2 : Rank_7);
+            constexpr auto PromotionRank = (Color == White ? Rank_8 : Rank_1);
 
-            EnumSquare target = origin + up;
-            if ((target & promotion_rank) & ~occupancy) {
-                *Moves++ = Move::Encode<Piece>(origin, target, KnightPromotion);
-                *Moves++ = Move::Encode<Piece>(origin, target, BishopPromotion);
-                *Moves++ = Move::Encode<Piece>(origin, target, RookPromotion  );
-                *Moves++ = Move::Encode<Piece>(origin, target, QueenPromotion );
-            } else if (target & ~occupancy) {
+            auto empty     = ~occupancy;
+
+            EnumSquare target = origin + RelativeUp;
+            if ((target & PromotionRank) & empty) {
+                *Moves++ = Move::Encode<Piece>(origin, target, PromotionKnight);
+                *Moves++ = Move::Encode<Piece>(origin, target, PromotionBishop);
+                *Moves++ = Move::Encode<Piece>(origin, target, PromotionRook  );
+                *Moves++ = Move::Encode<Piece>(origin, target, PromotionQueen );
+            } else if (target & empty) {
                 *Moves++ = Move::Encode<Piece>(origin, target, Quiet);
-                if ((origin & starting_rank) && ((target+up) & ~occupancy))
-                    *Moves++ = Move::Encode<Piece>(origin, (target+up), DoublePawnPush);
+                if ((origin & StartingRank) && ((target+RelativeUp) & empty))
+                    *Moves++ = Move::Encode<Piece>(origin, (target+RelativeUp), DoublePush);
             }
 
             auto attacks = GetAttack<Color, Piece>::On(origin) & Board[!Color];
             while (attacks) {
                 auto attack = Utils::PopLS1B(attacks);
                 *Moves++ = Move::Encode<Piece>(origin, attack, Capture);
-                if (attack & promotion_rank) { --Moves;
-                    *Moves++ = Move::Encode<Piece>(origin, attack, KnightPromotion | Capture);
-                    *Moves++ = Move::Encode<Piece>(origin, attack, BishopPromotion | Capture);
-                    *Moves++ = Move::Encode<Piece>(origin, attack, RookPromotion   | Capture);
-                    *Moves++ = Move::Encode<Piece>(origin, attack, QueenPromotion  | Capture);
+                if (attack & PromotionRank) { --Moves;
+                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionKnight | Capture);
+                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionBishop | Capture);
+                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionRook   | Capture);
+                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionQueen  | Capture);
                 }
             }
 
-            if (Board.GetEnPassant()) {
-                if (GetAttack<Color, Piece>::On(origin) & Board.GetEnPassant())
-                    *Moves++ = Move::Encode<Piece>(origin, Board.GetEnPassant(), EnPassant);
-            }
+            auto en_passant = Board.GetEnPassant();
+            if (en_passant)
+                if (GetAttack<Color, Piece>::On(origin) & en_passant)
+                    *Moves++ = Move::Encode<Piece>(origin, en_passant, EnPassant);
         }
+
+        /////////////////////////////////// KNIGHTS / KING ///////////////////////////////////
 
         if constexpr(Piece == King || Piece == Knights) {
             auto attacks = GetAttack<Piece>::On(origin) & ~Board[Color];
@@ -282,22 +266,24 @@ private:
                 constexpr auto Kk = (Color == White ? 0 : 2);
                 if (Board.GetCastlingRights()[Kk]) {
                     if (!(((king+1) | (king+2)) & occupancy))
-                        if (!IsSquareAttackedBy<(~Color)>(king)
-                        &&  !IsSquareAttackedBy<(~Color)>(king+1)
-                        &&  !IsSquareAttackedBy<(~Color)>(king+2))
+                        if (!InCheck<Color>(king)
+                        &&  !InCheck<Color>(king+1)
+                        &&  !InCheck<Color>(king+2))
                             *Moves++ = Move::Encode<Piece>(origin, king+2, CastleKing);
                 }
 
                 constexpr auto Qq = (Color == White ? 1 : 3);
                 if (Board.GetCastlingRights()[Qq]) {
                     if (!(((king-1) | (king-2) | (king-3)) & occupancy))
-                        if (!IsSquareAttackedBy<(~Color)>(king)
-                        &&  !IsSquareAttackedBy<(~Color)>(king-1)
-                        &&  !IsSquareAttackedBy<(~Color)>(king-2))
+                        if (!InCheck<Color>(king)
+                        &&  !InCheck<Color>(king-1)
+                        &&  !InCheck<Color>(king-2))
                             *Moves++ = Move::Encode<Piece>(origin, king-2, CastleQueen);
                 }
             }
         }
+
+        ////////////////////////////// BISHOPS / ROOKS / QUEEN ///////////////////////////////
 
         if constexpr(Piece == Bishops || Piece == Rooks || Piece == Queens) {
             auto attacks = Bitboard(0);
@@ -313,6 +299,7 @@ private:
             }
         }
 
+        /////////////////////////////////////////////////////////////////////////////////////
         }
     }
 

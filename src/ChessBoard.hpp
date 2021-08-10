@@ -39,10 +39,11 @@ public:
 private:
     [[nodiscard]] std::string PrettyPrint() const noexcept;
 
-    std::array<Bitboard, 8>      pieces { };
-    std::bitset<4>               castling_rights;
-    EnumSquare                   en_passant;
-    int                          half_moves;
-    int                          full_moves;
+    std::array<Bitboard, 8> pieces { };
+
+    std::bitset<4> castling_rights;
+    EnumSquare     en_passant;
+    int            half_moves;
+    int            full_moves;
 
 };
