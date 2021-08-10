@@ -5,9 +5,9 @@
 TARGET  := chess-engine
 
 CC      := g++
-FLAGS   := -Wall -Wextra -fconstexpr-ops-limit=1000000000
+FLAGS   := -Wall -Wextra -fconstexpr-ops-limit=1000000000 -fomit-frame-pointer
 STD     := -std=c++17
-RELEASE := -Ofast -march=native
+RELEASE := -Ofast -march=native -g
 DEBUG   := -g3 -fsanitize=address,undefined
 LIBS    :=
 
