@@ -15,20 +15,20 @@
 #include <iomanip>
 
 enum EnumMoveFlags {
-  Quiet = 0b0000,
-  DoublePawnPush = 0b0001,
-  CastleKing = 0b0010,
-  CastleQueen = 0b0011,
-  Capture = 0b0100,
-  EnPassant = 0b0101,
-  KnightPromotion = 0b1000,
-  BishopPromotion = 0b1001,
-  RookPromotion = 0b1010,
-  QueenPromotion = 0b1011,
-  KnightPromotionCapture = 0b1100,
-  BishopPromotionCapture = 0b1101,
-  RookPromotionCapture = 0b1110,
-  QueenPromotionCapture = 0b1111,
+    Quiet                  = 0b0000,
+    DoublePawnPush         = 0b0001,
+    CastleKing             = 0b0010,
+    CastleQueen            = 0b0011,
+    Capture                = 0b0100,
+    EnPassant              = 0b0101,
+    KnightPromotion        = 0b1000,
+    BishopPromotion        = 0b1001,
+    RookPromotion          = 0b1010,
+    QueenPromotion         = 0b1011,
+    KnightPromotionCapture = 0b1100,
+    BishopPromotionCapture = 0b1101,
+    RookPromotionCapture   = 0b1110,
+    QueenPromotionCapture  = 0b1111,
 
 };
 
@@ -65,7 +65,7 @@ ChessBoard Board(POSITION);
 template <EnumColor Color>
 inline bool IsSquareAttackedBy(EnumSquare square) noexcept {
     constexpr auto Other = ~Color;
-    auto occ = Board[White] | Board[Black];
+    const auto occ = Board[White] | Board[Black];
     return (
         GetAttack<Other, Pawns>::On(square     ) & (Board[Pawns  ] & Board[Color]) ? true :
         GetAttack<Knights     >::On(square     ) & (Board[Knights] & Board[Color]) ? true :
@@ -87,19 +87,19 @@ inline std::uint64_t GetAttackedSquares() noexcept {
 }
 
 struct Move final {
-    EnumPiece     piece;
     std::uint16_t encoded;
+    EnumPiece     piece;
 public:
 
     template <EnumPiece Piece>
     [[nodiscard]] static constexpr auto Encode
     (EnumSquare origin, EnumSquare target, EnumMoveFlags flags) noexcept {
         return Move {
-        .piece   = Piece,
         .encoded = static_cast<std::uint16_t>((
                   (( flags  & 0xf ) << 12)
                 | ((+origin & 0x3f) << 6 )
-                | ((+target & 0x3f) << 0 )))
+                | ((+target & 0x3f) << 0 ))),
+        .piece   = Piece
         };
 
     }
@@ -120,28 +120,18 @@ public:
         const auto color = Board.to_play;
         const auto other = !color;
 
-        if (flags & Capture)
+        Board.en_passant = a1;
+        if (flags & Capture) {
             std::for_each(Board.pieces.begin()+2, Board.pieces.end(),
             [&, t=target](auto& set) { if (set & t) Board[other] ^= (set ^= t, t); });
-
-        else if (flags == CastleKing) {
+        } else if (flags == DoublePawnPush) {
+            Board.en_passant = target + (color == White ? South : North);
+        } else if (flags == CastleKing) {
             const auto mask = (color == White ? (h1|f1) : (h8|f8));
             Board[color] ^= (Board[Rooks] ^= mask, mask);
-        }
-
-        else if (flags == CastleQueen) {
+        } else if (flags == CastleQueen) {
             const auto mask = (color == White ? (a1|d1) : (a8|d8));
             Board[color] ^= (Board[Rooks] ^= mask, mask);
-        }
-
-        if (flags & KnightPromotion) {
-            const auto promoted_to =
-                (flags == BishopPromotion || flags == BishopPromotionCapture ? Bishops :
-                 flags == RookPromotion   || flags == RookPromotionCapture   ? Rooks   :
-                 flags == QueenPromotion  || flags == QueenPromotionCapture  ? Queens  : Knights);
-            Board[promoted_to] |= target;
-            Board[Pawns] ^= target;
-
         }
 
         if (flags == EnPassant) {
@@ -149,13 +139,17 @@ public:
             Board[other] ^= (Board[Pawns] ^= to_erase, to_erase);
         }
 
-        Board.en_passant = a1; // no en_passant
 
-        if (flags == DoublePawnPush) {
-            Board.en_passant = target + (color == White ? South : North);
+        if (flags & KnightPromotion) {
+            const auto promoted_to =
+              flags == BishopPromotion || flags == BishopPromotionCapture ? Bishops :
+              flags == RookPromotion   || flags == RookPromotionCapture   ? Rooks   :
+              flags == QueenPromotion  || flags == QueenPromotionCapture  ? Queens  : Knights;
+            Board[promoted_to] |= target;
+            Board[Pawns] ^= target;
+
         }
 
-        // for all moves
         auto mask = (origin|target);
         Board[color] ^= (Board[piece] ^= mask, mask);
 
@@ -163,7 +157,6 @@ public:
             auto idx = color == White ? 0:2;
             Board.castling_rights[idx] = Board.castling_rights[idx+1] = 0;
         }
-
         if (piece == Rooks) {
             if (color == White) {
                 if (origin == h1) Board.castling_rights[0] = 0; // K
@@ -177,7 +170,6 @@ public:
         Board.to_play = static_cast<EnumColor>(!Board.to_play);
 
         auto king_square = Utils::IndexLS1B(Board[King] & Board[color]);
-
         return (color == White ?
                 !IsSquareAttackedBy<Black>(king_square) :
                 !IsSquareAttackedBy<White>(king_square));
@@ -220,13 +212,13 @@ public:
         std::uint64_t nodes = 0;
         if (depth == 0) return 1ULL;
 
-        auto backup = Board;
+        ChessBoard Old = Board;
         constexpr auto Other = ~Color;
         auto [MoveList, nmoves] = MoveGen::All<Color>();
         for (auto move = 0; move < nmoves; move++) {
             if (Move::Make(MoveList[move]))
                 nodes += Perft<Other>(depth-1);
-            Board = backup;
+            Board = Old;
         }
 
         return nodes;
@@ -348,6 +340,5 @@ int main(int argc, char* argv[]) { (void)argc;
     std::cout << "nodes: " << nodes << std::endl
               << "nps  : " << nps   << std::endl
               << "ms   : " << ms    << std::endl;
-
     return 0;
 }
