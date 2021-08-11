@@ -40,11 +40,11 @@ constexpr inline EnumMoveFlags operator|(EnumMoveFlags lhs, EnumMoveFlags rhs) n
     return lhs+rhs;
 }
 
-#define POSITION "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"
+#define POSITION "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -"
 ChessBoard Board(STARTING_POSITION);
 
 template <EnumColor Color>
-inline auto InCheck(EnumSquare square) noexcept {
+[[nodiscard]] inline auto InCheck(EnumSquare square) noexcept {
     const auto enemies   = Board[~Color];
     const auto occupancy = Board[ Color] | enemies;
     return (
@@ -66,9 +66,9 @@ struct alignas(4) Move final {
     (EnumSquare origin, EnumSquare target, EnumMoveFlags flags) noexcept {
         return Move {
         .encoded = static_cast<std::uint16_t>((
-                  (( flags  & 0xf ) << 12)
-                | ((+origin & 0x3f) << 6 )
-                | ((+target & 0x3f) << 0 ))),
+                   (( flags  & 0xf ) << 12)
+                 | ((+origin & 0x3f) << 6 )
+                 | ((+target & 0x3f) << 0 ))),
         .piece   = Piece
         };
 
@@ -84,7 +84,7 @@ struct alignas(4) Move final {
     }
     
     template<EnumColor Color> //__attribute__((always_inline))
-    static auto Make(Move& move) noexcept {
+    [[nodiscard]] static auto Make(Move& move) noexcept {
         constexpr auto Allies = Color, Enemies = ~Color;
         constexpr auto Castle = Allies == White ? (h1|f1) : (h8|f8);
         constexpr auto Down = Allies == White ? South : North;
@@ -160,16 +160,16 @@ struct alignas(4) Move final {
 class MoveGen final {
 public:
     template <EnumColor Color> __attribute__((always_inline))
-    static inline auto All() noexcept -> std::tuple<std::array<Move, 218>, std::uint8_t> {
+    static inline auto Run() noexcept -> std::tuple<std::array<Move, 218>, std::uint8_t> {
         std::array<Move, 218> moves { };
 
         auto iterator = moves.begin();
-        GenerateMoves<Color, Pawns   >(iterator);
-        GenerateMoves<Color, Knights >(iterator);
-        GenerateMoves<Color, Bishops >(iterator);
-        GenerateMoves<Color, Rooks   >(iterator);
-        GenerateMoves<Color, Queens  >(iterator);
-        GenerateMoves<Color, King    >(iterator);
+        PseudoLegal<Color, Pawns   >(iterator);
+        PseudoLegal<Color, Knights >(iterator);
+        PseudoLegal<Color, Bishops >(iterator);
+        PseudoLegal<Color, Rooks   >(iterator);
+        PseudoLegal<Color, Queens  >(iterator);
+        PseudoLegal<Color, King    >(iterator);
 
         auto nmoves = std::distance(moves.begin(), iterator);
 
@@ -182,7 +182,7 @@ public:
         std::uint64_t nodes = 0;
         if (depth == 0) return 1ULL;
         ChessBoard Old = Board;
-        auto [MoveList, nmoves] = MoveGen::All<Color>();
+        auto [MoveList, nmoves] = MoveGen::Run<Color>();
         for (auto move = 0; move < nmoves; move++) {
             if (Move::Make<Color>(MoveList[move]))
                 nodes += Perft<Other>(depth-1);
@@ -191,20 +191,8 @@ public:
     }
 
 private:
-
-    // template <EnumColor Color, EnumPiece Piece> __attribute__((always_inline))
-    // static inline auto GenerateLegal(std::array<Move, 218>::iterator& Moves) noexcept {
-    //     auto set       = (Board[Color] & Board[ Piece]);
-    //     auto occupancy = (Board[Color] | Board[~Color]);
-    //     auto occupancy_no_king = occupancy ^ Utils::IndexLS1B(Board[King] & Board[Color]);
-    //     while (set) {
-    //         if constexpr Piece =
-    //     }
-    // }
-
-
     template <EnumColor Color, EnumPiece Piece> __attribute__((always_inline))
-    static inline auto GenerateMoves(std::array<Move, 218>::iterator& Moves) noexcept {
+    static inline auto PseudoLegal(std::array<Move, 218>::iterator& Moves) noexcept {
         auto set       = (Board[Color] & Board[ Piece]);
         auto occupancy = (Board[Color] | Board[!Color]);
 
@@ -212,6 +200,7 @@ private:
         EnumSquare origin = Utils::PopLS1B(set);
 
         /////////////////////////////////////// PAWNS ////////////////////////////////////////
+
         if constexpr(Piece == Pawns) {
             constexpr auto RelativeUp    = (Color == White ? North  : South );
             constexpr auto StartingRank  = (Color == White ? Rank_2 : Rank_7);
@@ -311,7 +300,6 @@ private:
 
 int main(int argc, char* argv[]) { (void)argc;
     std::cout << Board << std::endl;
-
     auto started  = std::chrono::steady_clock::now();
     auto nodes    = MoveGen::Perft<White>(std::atoi(argv[1]));
     auto finished = std::chrono::steady_clock::now();

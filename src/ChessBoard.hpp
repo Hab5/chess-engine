@@ -10,8 +10,8 @@
 #include <algorithm>
 
 class ChessBoard final {
-    friend class FEN;
-    friend class Move;
+    friend class  FEN;
+    friend struct Move;
 public:
     ChessBoard(const std::string& fen=STARTING_POSITION);
 

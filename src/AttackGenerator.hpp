@@ -4,6 +4,14 @@
 #include "Utils.hpp"
 #include "Magics.hpp"
 
+// #define CONSTEXPR_MAGIC_BITBOARD
+
+#ifndef CONSTEXPR_MAGIC_BITBOARD
+#define _constexpr inline
+#else
+#define _constexpr constexpr
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////// ATTACK GENERATOR //////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,7 +113,7 @@ public:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr auto MaskTableBitCount() noexcept {
+    [[nodiscard]] static _constexpr auto MaskTableBitCount() noexcept {
         std::array<Bitboard, 64> masks = MaskTable();
         std::array<int, 64> masks_bitcount = { };
         for (EnumSquare square = a1; square <= h8; ++square)
@@ -113,7 +121,7 @@ public:
         return masks_bitcount;
     }
 
-    [[nodiscard]] static constexpr auto AttackTable() noexcept {
+    [[nodiscard]] static _constexpr auto AttackTable() noexcept {
         auto get_attack = [](EnumSquare square, Bitboard occupancy) constexpr {
             Bitboard attack = 0ULL, b = 0ULL, o = occupancy;
             int tr = square / 8, tf = square % 8; // 2D Square Index
@@ -145,7 +153,7 @@ public:
             int occupancy_idx = 1 << relevant_bits;
             for (int idx = 0; idx < occupancy_idx; idx++) {
                 auto occupancy = get_occupancy(idx, attack_mask);
-                int magic_idx = (occupancy * Magics<Bishops>[square]) >> (64-relevant_bits);
+                int magic_idx = (occupancy * Magics<Bishops>[square]) >> (64-9);
                 attacks[square][magic_idx] = get_attack(square, occupancy);
             }
         } return attacks;
@@ -161,7 +169,7 @@ private:
 template <>
 class Attacks<Rooks> final {
 public:
-    [[nodiscard]] static constexpr auto MaskTable() noexcept {
+    [[nodiscard]] static _constexpr auto MaskTable() noexcept {
         std::array<Bitboard, 64> masks { };
         for (EnumSquare square = a1; square <= h8; ++square) {
             int tr = square / 8, tf = square % 8; // 2D Square Index
@@ -174,7 +182,7 @@ public:
         } return masks;
     }
 
-    [[nodiscard]] static constexpr auto MaskTableBitCount() noexcept {
+    [[nodiscard]] static _constexpr auto MaskTableBitCount() noexcept {
         std::array<Bitboard, 64> masks = MaskTable();
         std::array<int, 64> masks_bitcount = { };
         for (EnumSquare square = a1; square <= h8; ++square)
@@ -182,7 +190,7 @@ public:
         return masks_bitcount;
     }
 
-    [[nodiscard]] static constexpr auto AttackTable() noexcept {
+    [[nodiscard]] static _constexpr auto AttackTable() noexcept {
         auto get_attack = [](EnumSquare square, Bitboard occupancy) constexpr {
             Bitboard a = 0ULL, rk = 0ULL, o = occupancy;
             int tr = square / 8, tf = square % 8;
@@ -214,7 +222,7 @@ public:
             int occupancy_idx = 1 << relevant_bits;
             for (int idx = 0; idx < occupancy_idx; idx++) {
                 auto occupancy = get_occupancy(idx, attack_mask);
-                int magic_idx = (occupancy * Magics<Rooks>[square]) >> (64-relevant_bits);
+                int magic_idx = (occupancy * Magics<Rooks>[square]) >> (64-12);
                 attacks[square][magic_idx] = get_attack(square, occupancy);
             }
         } return attacks;

@@ -5,42 +5,144 @@
 template <EnumPiece Piece>
 constexpr std::array<Bitboard, 64> Magics {};
 
-template <>
-constexpr inline std::array<Bitboard, 64> Magics<Rooks> {
-    0xd800010804000a0ULL,  0x44004403000a000ULL,  0x3000904c0102000ULL,  0x2080044800100082ULL,
-    0x2000e0008046010ULL,  0x100050004008208ULL,  0x1100209100220004ULL, 0xa08003a080144100ULL,
-    0x4244800440002084ULL, 0x401004008830020ULL,  0x2002001042042080ULL, 0x2180801000845800ULL,
-    0x50800800140280ULL,   0x25000401002268ULL,   0x201010402000100ULL,  0x445000100009062ULL,
-    0x104060800080c000ULL, 0x90404c4000a01002ULL, 0x1010008010846000ULL, 0x1030018010280280ULL,
-    0x280800c000801ULL,    0x2008004008006ULL,    0x4000040002100108ULL, 0x61b220000942441ULL,
-    0x2000401080002280ULL, 0x20004004d008ULL,     0x9102002200304080ULL, 0x2421080080801000ULL,
-    0x211009100080124ULL,  0x4102000200043810ULL, 0x18c100010002000cULL, 0x20104200288304ULL,
-    0x400020800080ULL,     0x810092000c00040ULL,  0x2002048012004020ULL, 0x300809000800800ULL,
-    0x80448c0080800800ULL, 0x111820080800400ULL,  0x8a080104000210ULL,   0x8a42000514ULL,
-    0x4008204000898001ULL, 0x6020201001404002ULL, 0x804204120020ULL,     0x700101a0110038ULL,
-    0x1200340008008080ULL, 0x812001004020088ULL,  0xb02a08040001ULL,     0x20040880d20023ULL,
-    0x380402080110300ULL,  0x300088c000290100ULL, 0x2120100280200080ULL, 0x828821000c100100ULL,
-    0x10862c0108008080ULL, 0x8010040002008080ULL, 0x5008003001a0080ULL,  0x800100004180ULL,
-    0x2008010204102ULL,    0x40002104108041ULL,   0x4010800a0022ULL,     0x1000e089000411ULL,
-    0x4100040800307bULL,   0x2803000208840041ULL, 0x5000094800900a04ULL, 0x130000220c4081ULL
+
+template<>
+constexpr inline std::array<Bitboard, 64> Magics<Bishops>{
+    0x8062200800306044ULL, 0x12081c800408a0ULL,   0x201043231881009ULL,  0x2423300880040300ULL,
+    0x4004140d12000060ULL, 0xa4244050c6800100ULL, 0x801a00c4040402c0ULL, 0x42020009042c0102ULL,
+    0x250005133002080ULL,  0x2c8002090108008ULL,  0x181014300881000ULL,  0x28a0802641006124ULL,
+    0x1010050142120200ULL, 0x108a112004000ULL,    0x440200108100ULL,     0x1208000200310224ULL,
+    0x1004a4052c02081ULL,  0x4001200108020422ULL, 0x80a880088010008ULL,  0x200204864001400ULL,
+    0x1801154012220002ULL, 0x4092006420802818ULL, 0x4200048089082ULL,    0x1008084010241400ULL,
+    0x203010a0008018ULL,   0xcc02004040800ULL,    0x470008024400ULL,     0x8420080002081010ULL,
+    0x10084001080a000ULL,  0x8011022410404a02ULL, 0x2006044083100ULL,    0x9401000010060aULL,
+    0x20452000081800ULL,   0x811004800102a01ULL,  0x86220804800ULL,      0x1100100820740400ULL,
+    0x1010400120220ULL,    0x420080021104402ULL,  0x1401043024220882ULL, 0x4000c00900080c00ULL,
+    0x1080802022902ULL,    0xa8842428001000ULL,   0x6540428040302400ULL, 0x8000201080800800ULL,
+    0x900020212304308ULL,  0x10908082000008ULL,   0x284040010900201ULL,  0x69240a30a04040ULL,
+    0x8230181609100010ULL, 0x11c0c0210b27320ULL,  0x300808070044ULL,     0x84200080848a0902ULL,
+    0x8020012414214000ULL, 0x9022999820000ULL,    0x400880c5801a104ULL,  0x3620081a42004000ULL,
+    0x84004d804d10820ULL,  0x2101010040202002ULL, 0x8000400160241020ULL, 0x42100000010222a0ULL,
+    0x1802022020200c0ULL,  0x200000490881200ULL,  0x30000480529101c0ULL, 0x100a803082114022ULL,
 };
 
-template <>
-constexpr inline std::array<Bitboard, 64> Magics<Bishops> {
-    0x2a120802119200ULL,   0x1844044092020080ULL, 0x20a2081300a40400ULL, 0x88184900000000ULL,
-    0x401110404082000bULL, 0x1126900420218000ULL, 0x10883412211246ULL,   0x1008090080a04ULL,
-    0x9400ec2048051100ULL, 0x2000044410a20200ULL, 0x402210301020020ULL,  0x1001510502000000ULL,
-    0x844c1420300090ULL,   0x40880c400010ULL,     0xcc24404044018ULL,    0x6010508221a02ULL,
-    0x808a084088082080ULL, 0x1200003a4010200ULL,  0x188002c0868a201ULL,  0x40140c4008000ULL,
-    0x862400a00088ULL,     0xc81011080c54000ULL,  0x2000900500901020ULL, 0xa00600820882ULL,
-    0x20162020040400ULL,   0x80105030021c3501ULL, 0x88081001cc10ULL,     0x441040001c40080ULL,
-    0x10030010a00804ULL,   0xc10490002008200ULL,  0x20092060c011c88ULL,  0x8091002001041900ULL,
-    0x92202024b22e08ULL,   0x80020a8206200804ULL, 0x120104800100b80ULL,  0x8200404800408200ULL,
-    0x48c0024100081100ULL, 0x101000c200804500ULL, 0x292046400010084ULL,  0x800a009020120204ULL,
-    0x6001012021411083ULL, 0x205440414006000ULL,  0x854840401005a00ULL,  0xa01100a800ULL,
-    0x210122000400ULL,     0x41101010004408a0ULL, 0x108a1184002100ULL,   0x100c088881084a08ULL,
-    0x9155082230040082ULL, 0xe40805128200000ULL,  0x51042184100000ULL,   0x230001138c040004ULL,
-    0x4600000821010086ULL, 0x16141c28220010ULL,   0x24820840c504008ULL,  0x248010800810120ULL,
-    0x3801620300884000ULL, 0x622004046501042ULL,  0x200010100411000ULL,  0x1260200108411090ULL,
-    0x20a0000808302400ULL, 0x1000404084210ULL,    0x448203c10060062ULL,  0xc822100a012105ULL
+template<>
+constexpr inline std::array<Bitboard, 64> Magics<Rooks>{
+    0xd800010804000a0ULL,  0x40004820807041ULL,   0x20040008026008ULL,   0x100408040a8010ULL,
+    0x500100800010a04ULL,  0x400880210200400ULL,  0x208010c221000080ULL, 0x1100018150210002ULL,
+    0x42040200200080ULL,   0x80110804000900a8ULL, 0xb0080c0042000ULL,    0x802000202284188ULL,
+    0x511000208101100ULL,  0x4400084400101ULL,    0x8044100900004020ULL, 0x580424080004100ULL,
+    0x6040a00122100aULL,   0x6800282001100120ULL, 0x2110050100102c04ULL, 0x44002800201088ULL,
+    0x1000020880100409ULL, 0x1130040080100ULL,    0x10424040010d80ULL,   0x8004088000285300ULL,
+    0x2024200109020ULL,    0x802b01010244a408ULL, 0x180040020000801ULL,  0x1010022200124008ULL,
+    0x6080300108042800ULL, 0x4001004040098ULL,    0x244181024100ULL,     0x4201000840002080ULL,
+    0x4244002000201000ULL, 0x6000102040840028ULL, 0x808800408801000ULL,  0x1000080530800220ULL,
+    0x4000800841044040ULL, 0x80c002120080842ULL,  0x940300284310a00ULL,  0x10101c0200c71ULL,
+    0x2088002040002012ULL, 0x10008102002a0046ULL, 0x8008030460200200ULL, 0x1060210300090010ULL,
+    0x8430c0802601800ULL,  0x448c800308400eULL,   0x20000e0002010990ULL, 0x2080004000200808ULL,
+    0x4840119310c45200ULL, 0x4000108041000880ULL, 0x10042000425100ULL,   0x11122010042020ULL,
+    0x202020010042040ULL,  0x2841100080222050ULL, 0x55000080104010ULL,   0x2200020092006040ULL,
+    0x2010290280420012ULL, 0x800080201040000fULL, 0x300500502402001ULL,  0x40510084200a202ULL,
+    0x4801480010010605ULL, 0x4000888020401ULL,    0x2106e08010084ULL,    0x4081040061418102ULL,
 };
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// MAGIC NUMBER GENERATION ///////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+// #include "ChessEngine.hpp"
+// #include "Attack.hpp"
+// #include "Utils.hpp"
+// #include <random>
+
+// auto GetOccupancy(int index, Bitboard attack_mask) {
+//     Bitboard occupancy = 0ULL;
+//     const auto mask_population = Utils::BitCount(attack_mask);
+//     for (int count = 0; count < mask_population; count++) {
+//         auto square = Utils::PopLS1B(attack_mask);
+//         if (index & (1 << count))
+//             occupancy |= (1ULL << square);
+//     } return occupancy;
+// }
+// std::mt19937_64 rng64(123456);
+
+// template <EnumPiece Piece>
+// auto FindMagicNumber(EnumSquare square) noexcept {
+//     constexpr auto FixedShift = Piece == Bishops ? 64-9 : 64-12;
+//     std::array<Bitboard, 4096> occupancies = { };
+//     std::array<Bitboard, 4096> attacks = { };
+//     std::array<Bitboard, 4096> used_attacks = { };
+//     auto attack_mask   = GetAttack<Piece>::MaskTable[square];
+//     auto relevant_bits = GetAttack<Piece>::MaskBitCount[square];
+//     int occupancy_idx = 1 << relevant_bits;
+
+//     for (int idx = 0; idx < occupancy_idx; idx++) {
+//         occupancies[idx] = GetOccupancy(idx, attack_mask);
+//         attacks[idx] = SliderAttacks<Piece>::On(square, occupancies[idx]);
+//     }
+
+//     for (int random_count = 0; random_count < 10000000; random_count++) {
+//         Bitboard magic = rng64() & rng64() & rng64();
+//         if (Utils::BitCount((attack_mask * magic) ^ 56) < 6) continue;
+//         used_attacks.fill(0x00);
+//         int idx, fail;
+//         for (idx = 0, fail = 0; !fail && idx < occupancy_idx; idx++ ) {
+//             Bitboard magic_idx = (occupancies[idx] * magic) >> FixedShift;//relevant_bits);
+//             if (used_attacks[magic_idx] == 0ULL)
+//                 used_attacks[magic_idx] = attacks[idx];
+//             else if (used_attacks[magic_idx] != attacks[idx]) fail = 1;
+//         } if (!fail) return magic;
+//     }
+//     std::cout << "magic failed\n";
+//     return Bitboard(0);
+// }
+
+// template <EnumPiece Piece>
+// auto GenerateAndPrintMagicNumbers() noexcept {
+//     constexpr auto PieceName = Piece == Bishops ? "<Bishops>" : "<Rooks>";
+//     std::cout << "template<>\n"
+//         << "constexpr inline std::array<Bitboard, 64> Magics" << PieceName << "{\n";
+//     for (EnumSquare square = a1; square <= h8; ++square)
+//         std::cout << std::hex << "0x" << FindMagicNumber<Piece>(square) << "ULL,\n";
+//     std::cout << "};\n\n";
+// }
+
+
+// template <EnumPiece Piece>
+// struct SliderAttacks final { };
+
+// template <>
+// struct SliderAttacks<Bishops> final {
+// public:
+//     [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
+//         Bitboard attack = 0ULL, b = 0ULL, o = occupancy;
+//            int tr = square / 8, tf = square % 8; // 2D Square Index
+//            #define SET_SQUARE { b=0; b|=EnumSquare(f+r*8); attack|=b; if (b&o) break; }
+//            for (int r = tr+1, f = tf+1; r <= 7 && f <= 7; r++,f++) SET_SQUARE // NE
+//            for (int r = tr+1, f = tf-1; r <= 7 && f >= 0; r++,f--) SET_SQUARE // NW
+//            for (int r = tr-1, f = tf+1; r >= 0 && f <= 7; r--,f++) SET_SQUARE // SE
+//            for (int r = tr-1, f = tf-1; r >= 0 && f >= 0; r--,f--) SET_SQUARE // SW
+//            #undef  SET_SQUARE
+//            return attack;
+//     }
+// };
+
+// template <>
+// struct SliderAttacks<Rooks> final {
+// public:
+//     [[nodiscard]] static constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
+//         Bitboard a = 0ULL, rk = 0ULL, o = occupancy;
+//         int tr = square / 8, tf = square % 8;
+//         #define SET_SQUARE { rk=0; rk|=EnumSquare(f+r*8); a|=rk; if (rk&o) break; }
+//         for (int r = tr+1, f = tf;   r <= 7; r++) SET_SQUARE // N
+//         for (int r = tr-1, f = tf;   r >= 0; r--) SET_SQUARE // S
+//         for (int r = tr,   f = tf+1; f <= 7; f++) SET_SQUARE // E
+//         for (int r = tr,   f = tf-1; f >= 0; f--) SET_SQUARE // W
+//         #undef  SET_SQUARE
+//         return a;
+//     }
+// };
