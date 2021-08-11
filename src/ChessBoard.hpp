@@ -10,8 +10,9 @@
 #include <algorithm>
 
 class ChessBoard final {
-    friend class  FEN;
+    friend class  MoveGen;
     friend struct Move;
+    friend class  FEN;
 public:
     ChessBoard(const std::string& fen=STARTING_POSITION);
 
@@ -31,19 +32,15 @@ public:
         return en_passant;
     }
 
-    [[nodiscard]] constexpr inline auto GetCastlingRights() const noexcept {
-        return castling_rights;
-    }
-
-    EnumColor                    to_play;
 private:
     [[nodiscard]] std::string PrettyPrint() const noexcept;
 
-    std::array<Bitboard, 8> pieces { };
-
-    std::bitset<4> castling_rights;
+    EnumColor      to_play;
     EnumSquare     en_passant;
     int            half_moves;
     int            full_moves;
+    std::bitset<4> castling_rights;
+    std::array<Bitboard, 8> pieces { };
+
 
 };

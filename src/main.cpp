@@ -1,6 +1,6 @@
 #include "ChessEngine.hpp"
 #include "ChessBoard.hpp"
-#include "Attack.hpp"
+#include "GetAttack.hpp"
 #include "Utils.hpp"
 #include "FEN.hpp"
 
@@ -40,7 +40,7 @@ constexpr inline EnumMoveFlags operator|(EnumMoveFlags lhs, EnumMoveFlags rhs) n
     return lhs+rhs;
 }
 
-#define POSITION "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -"
+#define POSITION "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"
 ChessBoard Board(STARTING_POSITION);
 
 template <EnumColor Color>
@@ -115,8 +115,12 @@ struct alignas(4) Move final {
         else if (flags & Capture) std::for_each(&Board[Pawns], &Board[King],
             [&, t=target](auto& set) { if (set & t) Board[Enemies] ^= (set ^= t, t); });
         else if (flags == DoublePush ) Board.en_passant = target + Down;
-        else if (flags == CastleKing ) Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
-        else if (flags == CastleQueen) Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
+        else if (flags == CastleKing ) {
+            Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
+        }
+        else if (flags == CastleQueen) {
+            Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
+        }
         if (flags == EnPassant) Board[Enemies] ^= (Board[Pawns] ^= target+Down, target+Down);
         if (flags & PromotionKnight) {
             const auto promotion =
@@ -232,10 +236,9 @@ private:
                 }
             }
 
-            auto en_passant = Board.GetEnPassant();
-            if (en_passant)
-                if (GetAttack<Color, Piece>::On(origin) & en_passant)
-                    *Moves++ = Move::Encode<Piece>(origin, en_passant, EnPassant);
+            if (Board.en_passant)
+                if (GetAttack<Color, Piece>::On(origin) & Board.en_passant)
+                    *Moves++ = Move::Encode<Piece>(origin, Board.en_passant, EnPassant);
         }
 
         /////////////////////////////////// KNIGHTS / KING ///////////////////////////////////
@@ -253,21 +256,25 @@ private:
                 constexpr auto king = (Color == White ? e1:e8);
 
                 constexpr auto Kk = (Color == White ? 0 : 2);
-                if (Board.GetCastlingRights()[Kk]) {
-                    if (!(((king+1) | (king+2)) & occupancy))
-                        if (!InCheck<Color>(king)
-                        &&  !InCheck<Color>(king+1)
-                        &&  !InCheck<Color>(king+2))
-                            *Moves++ = Move::Encode<Piece>(origin, king+2, CastleKing);
+                if (Board.castling_rights[Kk]) {
+                    if (Board[Rooks] & king+3) {
+                        if (!(((king+1) | (king+2)) & occupancy))
+                            if (!InCheck<Color>(king)
+                                &&  !InCheck<Color>(king+1)
+                                &&  !InCheck<Color>(king+2))
+                                *Moves++ = Move::Encode<Piece>(origin, king+2, CastleKing);
+                    } else Board.castling_rights[Kk] = 0;
                 }
 
                 constexpr auto Qq = (Color == White ? 1 : 3);
-                if (Board.GetCastlingRights()[Qq]) {
-                    if (!(((king-1) | (king-2) | (king-3)) & occupancy))
-                        if (!InCheck<Color>(king)
-                        &&  !InCheck<Color>(king-1)
-                        &&  !InCheck<Color>(king-2))
-                            *Moves++ = Move::Encode<Piece>(origin, king-2, CastleQueen);
+                if (Board.castling_rights[Qq]) {
+                    if (Board[Rooks] & king-3) {
+                        if (!(((king-1) | (king-2) | (king-3)) & occupancy))
+                            if (!InCheck<Color>(king)
+                            &&  !InCheck<Color>(king-1)
+                            &&  !InCheck<Color>(king-2))
+                                *Moves++ = Move::Encode<Piece>(origin, king-2, CastleQueen);
+                    } else Board.castling_rights[Qq] = 0;
                 }
             }
         }
