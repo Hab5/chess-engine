@@ -4,8 +4,8 @@
 
 TARGET  := chess-engine
 
-CC      := g++
-FLAGS   := -Wall -Wextra -fconstexpr-ops-limit=1000000000
+CC      := clang++
+FLAGS   := -Wall -Wextra -fconstexpr-steps=1000000000
 STD     := -std=c++17
 RELEASE := -Ofast -march=native -DNDEBUG
 DEBUG   := -g3 -fsanitize=address,undefined

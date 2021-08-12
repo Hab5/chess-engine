@@ -13,6 +13,7 @@
 #include <vector>
 #include <array>
 #include <iomanip>
+#include <chrono>
 
 enum EnumMoveFlags: std::uint8_t {
     Quiet            = 0b0000,
@@ -68,7 +69,7 @@ struct alignas(4) Move final {
     [[nodiscard]] static inline constexpr auto Encode
     (EnumSquare origin, EnumSquare target, EnumMoveFlags flags) noexcept {
         return Move {
-            .piece   = Piece,
+            .piece  = Piece,
             .origin = origin,
             .target = target,
             .flags  = flags
@@ -86,9 +87,10 @@ struct alignas(4) Move final {
         constexpr auto Qq        = Allies == White ? 1 : 3;
 
         const auto [piece, origin, target, flags] = move;
-
         Board.to_play    = Enemies;
         Board.en_passant = EnumSquare(0);
+
+        //////////////////////////////////////// QUIET ///////////////////////////////////////
 
         if (flags == Quiet) {
             auto move_mask = (origin|target);
@@ -102,10 +104,14 @@ struct alignas(4) Move final {
             } return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
         }
 
+        ////////////////////////////////////// CAPTURE ///////////////////////////////////////
+
         if (flags & Capture) {
             std::for_each(&Board[Pawns], &Board[King],
             [&, t=target](auto& set) { if (set & t) Board[Enemies] ^= (set ^= t, t); });
         }
+
+        ////////////////////////////////////// SPECIAL ///////////////////////////////////////
 
         else if (flags == DoublePush )
             Board.en_passant = target + Down;
@@ -132,7 +138,9 @@ struct alignas(4) Move final {
             if (origin == QueenRook) Board.castling_rights[Qq] = 0;
         }
 
-        auto move_mask = (origin|target);
+        //////////////////////////////////////////////////////////////////////////////////////
+
+        const auto move_mask = (origin|target);
         Board[Allies] ^= (Board[piece] ^= move_mask, move_mask);
         return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
     }
@@ -158,13 +166,38 @@ public:
         PseudoLegal<Color, Queens  >(iterator);
         PseudoLegal<Color, King    >(iterator);
 
-        auto nmoves = std::distance(moves.begin(), iterator);
-
+        const auto nmoves = std::distance(moves.begin(), iterator);
         return { moves, nmoves };
     }
 
-    template <EnumColor Color>
     static std::uint64_t Perft(int depth) noexcept {
+        std::uint64_t nodes = 0;
+
+        auto started  = std::chrono::steady_clock::now();
+        if (Board.to_play == White)
+            nodes = _Perft<White>(depth);
+        else if (Board.to_play == Black)
+            nodes = _Perft<Black>(depth);
+        auto finished = std::chrono::steady_clock::now();
+
+        auto ms = std::chrono::duration_cast
+                 <std::chrono::milliseconds>
+                 (finished-started).count();
+        auto sec = ms / 1000.00000f;
+
+        std::cout.imbue(std::locale(""));
+        std::cout << std::fixed << std::setprecision(2);
+        std::cout << "[depth=" << depth << "][" << nodes << "]["
+            << "" << std::setprecision(2) << nodes/sec/1000000 << "Mnps]\n";
+
+        return nodes;
+    }
+
+
+private:
+
+    template <EnumColor Color>
+    static std::uint64_t _Perft(int depth) noexcept {
         constexpr auto Other = ~Color;
         if (depth == 0) return 1ULL;
         std::uint64_t nodes = 0;
@@ -172,12 +205,11 @@ public:
         auto [MoveList, nmoves] = MoveGen::Run<Color>();
         for (auto move = 0; move < nmoves; move++) {
             if (Move::Make<Color>(MoveList[move]))
-                nodes += Perft<Other>(depth-1);
+                nodes += _Perft<Other>(depth-1);
             Board = Old;
         } return nodes;
     }
 
-private:
     template <EnumColor Color, EnumPiece Piece> __attribute__((always_inline))
     static inline auto PseudoLegal(std::array<Move, 218>::iterator& Moves) noexcept {
         auto set       = (Board[Color] & Board[ Piece]);
@@ -243,8 +275,8 @@ private:
                     if (Board[Rooks] & king+3) {
                         if (!(((king+1) | (king+2)) & occupancy))
                             if (!InCheck<Color>(king)
-                                &&  !InCheck<Color>(king+1)
-                                &&  !InCheck<Color>(king+2))
+                            &&  !InCheck<Color>(king+1)
+                            &&  !InCheck<Color>(king+2))
                                 *Moves++ = Move::Encode<Piece>(origin, king+2, CastleKing);
                     } else Board.castling_rights[Kk] = 0;
                 }
@@ -286,24 +318,10 @@ private:
     ~MoveGen()=delete;
 };
 
-#include <chrono>
 
 int main(int argc, char* argv[]) { (void)argc;
     std::cout << Board << std::endl;
-    auto started  = std::chrono::steady_clock::now();
-    auto nodes    = MoveGen::Perft<White>(std::atoi(argv[1]));
-    auto finished = std::chrono::steady_clock::now();
-
-    auto ms       = std::chrono::duration_cast
-                   <std::chrono::milliseconds>
-                   (finished-started).count();
-
-    long nps      = nodes / (ms / 1000.00f);
-
-    std::cout.imbue(std::locale(""));
-    std::cout << "nodes: " << nodes << std::endl
-              << "nps  : " << nps   << std::endl
-              << "ms   : " << ms    << std::endl;
+    MoveGen::Perft(std::atoi(argv[1]));
     return 0;
 }
 

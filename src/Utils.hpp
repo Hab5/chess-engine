@@ -100,7 +100,9 @@ public:
 
     template <EnumFlip FlipDirection>
     [[nodiscard]] static constexpr Bitboard Flip(Bitboard bitboard) {
-        constexpr auto flip_horizontal = [](Bitboard bitboard) noexcept {
+        if constexpr (FlipDirection == Vertical)
+            return __builtin_bswap64(bitboard);
+        if constexpr (FlipDirection == Horizontal) {
             const Bitboard k1 = 0x5555555555555555;
             const Bitboard k2 = 0x3333333333333333;
             const Bitboard k4 = 0x0f0f0f0f0f0f0f0f;
@@ -108,16 +110,18 @@ public:
             bitboard = ((bitboard >> 2) & k2) +  4*(bitboard & k2);
             bitboard = ((bitboard >> 4) & k4) + 16*(bitboard & k4);
             return bitboard;
-        };
-
-        constexpr auto flip_diagonal = [](Bitboard bitboard) noexcept {
-            return bitboard; // TODO
-        };
-
-        switch (FlipDirection) {
-        case Vertical  : return __builtin_bswap64(bitboard);
-        case Horizontal: return flip_horizontal(bitboard);
-        case Diagonal  : return flip_diagonal(bitboard);
         }
+        if constexpr (FlipDirection == Diagonal)
+            return bitboard; // TODO
+
+        // constexpr auto flip_diagonal = [](Bitboard bitboard) noexcept {
+        //     return bitboard; // TODO
+        // };
+
+        // switch (FlipDirection) {
+        // case Vertical  : return __builtin_bswap64(bitboard);
+        // case Horizontal: return flip_horizontal(bitboard);
+        // case Diagonal  : return flip_diagonal(bitboard);
+        // }
     }
 };
