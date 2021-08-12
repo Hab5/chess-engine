@@ -68,10 +68,6 @@ struct alignas(4) Move final {
     [[nodiscard]] static inline constexpr auto Encode
     (EnumSquare origin, EnumSquare target, EnumMoveFlags flags) noexcept {
         return Move {
-        // .encoded = static_cast<std::uint16_t>((
-        //            (( flags  & 0xf ) << 12)
-        //          | ((+origin & 0x3f) << 6 )
-        //          | ((+target & 0x3f) << 0 ))),
             .piece   = Piece,
             .origin = origin,
             .target = target,
@@ -79,103 +75,72 @@ struct alignas(4) Move final {
         };
     }
 
-    // [[nodiscard]] static constexpr auto Decode(const Move& move) noexcept
-    // -> std::tuple<EnumPiece, EnumSquare, EnumSquare, EnumMoveFlags> {
-    //     return { move.piece,
-    //         static_cast<EnumSquare   >((move.encoded >> 6 ) & 0x3f), // origin
-    //         static_cast<EnumSquare   >((move.encoded >> 0 ) & 0x3f), // target
-    //         static_cast<EnumMoveFlags>((move.encoded >> 12) & 0xf)   // flags
-    //     };
-    // }
-    
     template<EnumColor Color> [[nodiscard]] __attribute__((always_inline))
     static auto Make(Move& move) noexcept {
-        constexpr auto Allies = Color, Enemies = ~Color;
-        constexpr auto Castle = Allies == White ? (h1|f1) : (h8|f8);
-        constexpr auto Down = Allies == White ? South : North;
+        constexpr auto Allies    = Color, Enemies = ~Color;
+        constexpr auto Down      = Allies == White ? South : North;
+        constexpr auto KingRook  = Allies == White ? h1 : h8;
+        constexpr auto QueenRook = Allies == White ? a1 : a8;
+        constexpr auto Castle    = Allies == White ? (h1|f1) : (h8|f8);
+        constexpr auto Kk        = Allies == White ? 0 : 2;
+        constexpr auto Qq        = Allies == White ? 1 : 3;
 
-        const auto [piece, origin, target, flags] = move;//Move::Decode(move);
+        const auto [piece, origin, target, flags] = move;
 
         Board.to_play    = Enemies;
         Board.en_passant = EnumSquare(0);
-
-        // switch (flags) {
-        // case Quiet:
-        //     auto move_mask = (origin|target);
-        //     Board[Allies] ^= (Board[piece] ^= move_mask, move_mask);
-        //     if (piece == King) {
-        //         constexpr auto CastlingRightsIdx = Allies == White ? 0 : 2;
-        //         Board.castling_rights[CastlingRightsIdx]   = 0;
-        //         Board.castling_rights[CastlingRightsIdx+1] = 0;
-        //     } else if (piece == Rooks) {
-
-        //     }
-        // }
 
         if (flags == Quiet) {
             auto move_mask = (origin|target);
             Board[Allies] ^= (Board[piece] ^= move_mask, move_mask);
             if (piece == King) {
-                constexpr auto CastlingRightsIdx = Allies == White ? 0 : 2;
-                Board.castling_rights[CastlingRightsIdx]   = 0;
-                Board.castling_rights[CastlingRightsIdx+1] = 0;
+                Board.castling_rights[Kk] = 0;
+                Board.castling_rights[Qq] = 0;
             } else if (piece == Rooks) {
-                if constexpr (Allies == White) {
-                    if (origin == h1) Board.castling_rights[0] = 0; // K
-                    if (origin == a1) Board.castling_rights[1] = 0; // Q
-                } else {
-                    if (origin == h8) Board.castling_rights[2] = 0; // k
-                    if (origin == a8) Board.castling_rights[3] = 0; // q
-                }
-            }
-            return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+                if (origin == KingRook ) Board.castling_rights[Kk] = 0;
+                if (origin == QueenRook) Board.castling_rights[Qq] = 0;
+            } return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
         }
-        else if (flags & Capture) std::for_each(&Board[Pawns], &Board[King],
+
+        if (flags & Capture) {
+            std::for_each(&Board[Pawns], &Board[King],
             [&, t=target](auto& set) { if (set & t) Board[Enemies] ^= (set ^= t, t); });
-        else if (flags == DoublePush ) Board.en_passant = target + Down;
-        else if (flags == CastleKing ) {
-            Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
         }
-        else if (flags == CastleQueen) {
+
+        else if (flags == DoublePush )
+            Board.en_passant = target + Down;
+
+        else if (flags == CastleKing || flags == CastleQueen)
             Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
-        }
-        if (flags == EnPassant) Board[Enemies] ^= (Board[Pawns] ^= target+Down, target+Down);
+
+        if (flags == EnPassant)
+            Board[Enemies] ^= (Board[Pawns] ^= target+Down, target+Down);
+
         if (flags & PromotionKnight) {
             const auto promotion =
-                flags == PromotionBishop || flags == XPromotionBishop ? Bishops :
-                flags == PromotionRook   || flags == XPromotionRook   ? Rooks   :
-                flags == PromotionQueen  || flags == XPromotionQueen  ? Queens  : Knights;
+            flags == PromotionBishop || flags == XPromotionBishop ? Bishops :
+            flags == PromotionRook   || flags == XPromotionRook   ? Rooks   :
+            flags == PromotionQueen  || flags == XPromotionQueen  ? Queens  :Knights;
             Board[promotion] |= target; Board[Pawns] ^= target;
-        } if (piece == King) { // limit this ?
-            constexpr auto CastlingRightsIdx = Allies == White ? 0 : 2;
-            Board.castling_rights[CastlingRightsIdx]   = 0;
-            Board.castling_rights[CastlingRightsIdx+1] = 0;
-        } if (piece == Rooks) { // and this ?
-            if constexpr (Allies == White) {
-                if (origin == h1) Board.castling_rights[0] = 0; // K
-                if (origin == a1) Board.castling_rights[1] = 0; // Q
-            } else {
-                if (origin == h8) Board.castling_rights[2] = 0; // k
-                if (origin == a8) Board.castling_rights[3] = 0; // q
-            }
+        }
+
+        if (piece == King) {
+            Board.castling_rights[Kk] = 0;
+            Board.castling_rights[Qq] = 0;
+        } else if (piece == Rooks) {
+            if (origin == KingRook ) Board.castling_rights[Kk] = 0;
+            if (origin == QueenRook) Board.castling_rights[Qq] = 0;
         }
 
         auto move_mask = (origin|target);
         Board[Allies] ^= (Board[piece] ^= move_mask, move_mask);
-
         return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
     }
 
-    // friend inline std::ostream& operator<<(std::ostream& os, const Move& move) {
-    //     auto [piece, origin, target, flags] = Move::Decode(move);
-
-    //     return os << std::left << std::setw(8) << piece << std::setw(0) << "| "
-    //               << origin << '-' << target << " | " << flags;
-    // }
-
-    // friend inline bool operator>(const Move& move, const Move& other) {
-    //     return move.encoded > other.encoded;
-    // }
+    friend inline std::ostream& operator<<(std::ostream& os, const Move& move) {
+        return os << std::left << std::setw(8) << move.piece << std::setw(0) << "| "
+                  << move.origin << '-' << move.target << " | " << move.flags;
+    }
 };
 
 
@@ -341,3 +306,121 @@ int main(int argc, char* argv[]) { (void)argc;
               << "ms   : " << ms    << std::endl;
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+// #define MoveUpdate()
+        //     auto move_mask = (origin|target);
+        //     Board[Allies] ^= (Board[piece] ^= move_mask, move_mask);
+
+        // #define CaptureUpdate()
+        //     std::for_each(&Board[Pawns], &Board[King],
+        //     [&, t=target](auto& set) { if (set & t) Board[Enemies] ^= (set ^= t, t); });
+
+        // constexpr auto QueenRook = Allies == White ? a1 : a8;
+        // constexpr auto KingRook  = Allies == White ? h1 : h8;
+        // constexpr auto Kk        = Allies == White ? 0 : 2;
+        // constexpr auto Qq        = Allies == White ? 1 : 3;
+
+        // switch (flags) {
+        // case Quiet: {
+        //     MoveUpdate();
+        //     if      (piece == King) {
+        //         Board.castling_rights[Kk] = 0;
+        //         Board.castling_rights[Qq] = 0;
+        //     }
+        //     else if (piece == Rooks) {
+        //         if      (origin == KingRook ) Board.castling_rights[Kk] = 0;
+        //         else if (origin == QueenRook) Board.castling_rights[Qq] = 0;
+        //     } return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case DoublePush: {
+        //     MoveUpdate();
+        //     Board.en_passant = target+Down;
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case CastleKing: [[fallthrough]];
+        // case CastleQueen: {
+        //     MoveUpdate();
+        //     Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case Capture: {
+        //     CaptureUpdate();
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+
+        // case EnPassant: {
+        //     MoveUpdate();
+        //     Board[Enemies] ^= (Board[Pawns] ^= target+Down, target+Down);
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case PromotionKnight: {
+        //     Board[Knights] |= target; Board[Pawns] ^= target;
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case PromotionBishop: {
+        //     Board[Bishops] |= target; Board[Pawns] ^= target;
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case PromotionRook: {
+        //     Board[Rooks] |= target; Board[Pawns] ^= target;
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case PromotionQueen: {
+        //     Board[Queens] |= target; Board[Pawns] ^= target;
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case XPromotionKnight: {
+        //     Board[Knights] |= target; Board[Pawns] ^= target;
+        //     CaptureUpdate();
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case XPromotionBishop: {
+        //     Board[Bishops] |= target; Board[Pawns] ^= target;
+        //     CaptureUpdate();
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case XPromotionRook: {
+        //     Board[Rooks] |= target; Board[Pawns] ^= target;
+        //     CaptureUpdate();
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+
+        // case XPromotionQueen: {
+        //     Board[Queens] |= target; Board[Pawns] ^= target;
+        //     CaptureUpdate();
+        //     MoveUpdate();
+        //     return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
+        // }
+        // }
+
+        // } return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
