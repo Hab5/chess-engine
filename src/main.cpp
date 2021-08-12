@@ -14,7 +14,7 @@
 #include <array>
 #include <iomanip>
 
-enum EnumMoveFlags {
+enum EnumMoveFlags: std::uint8_t {
     Quiet            = 0b0000,
     DoublePush       = 0b0001,
     CastleKing       = 0b0010,
@@ -58,41 +58,59 @@ template <EnumColor Color>
 }
 
 struct alignas(4) Move final {
-    std::uint16_t encoded;
+    // std::uint16_t encoded;
     EnumPiece     piece;
+    EnumSquare    origin;
+    EnumSquare    target;
+    EnumMoveFlags flags;
 
     template <EnumPiece Piece>
     [[nodiscard]] static inline constexpr auto Encode
     (EnumSquare origin, EnumSquare target, EnumMoveFlags flags) noexcept {
         return Move {
-        .encoded = static_cast<std::uint16_t>((
-                   (( flags  & 0xf ) << 12)
-                 | ((+origin & 0x3f) << 6 )
-                 | ((+target & 0x3f) << 0 ))),
-        .piece   = Piece
-        };
-
-    }
-
-    [[nodiscard]] static constexpr auto Decode(const Move& move) noexcept
-    -> std::tuple<EnumPiece, EnumSquare, EnumSquare, EnumMoveFlags> {
-        return { move.piece,
-            static_cast<EnumSquare   >((move.encoded >> 6 ) & 0x3f), // origin
-            static_cast<EnumSquare   >((move.encoded >> 0 ) & 0x3f), // target
-            static_cast<EnumMoveFlags>((move.encoded >> 12) & 0xf)   // flags
+        // .encoded = static_cast<std::uint16_t>((
+        //            (( flags  & 0xf ) << 12)
+        //          | ((+origin & 0x3f) << 6 )
+        //          | ((+target & 0x3f) << 0 ))),
+            .piece   = Piece,
+            .origin = origin,
+            .target = target,
+            .flags  = flags
         };
     }
+
+    // [[nodiscard]] static constexpr auto Decode(const Move& move) noexcept
+    // -> std::tuple<EnumPiece, EnumSquare, EnumSquare, EnumMoveFlags> {
+    //     return { move.piece,
+    //         static_cast<EnumSquare   >((move.encoded >> 6 ) & 0x3f), // origin
+    //         static_cast<EnumSquare   >((move.encoded >> 0 ) & 0x3f), // target
+    //         static_cast<EnumMoveFlags>((move.encoded >> 12) & 0xf)   // flags
+    //     };
+    // }
     
-    template<EnumColor Color> //__attribute__((always_inline))
-    [[nodiscard]] static auto Make(Move& move) noexcept {
+    template<EnumColor Color> [[nodiscard]] __attribute__((always_inline))
+    static auto Make(Move& move) noexcept {
         constexpr auto Allies = Color, Enemies = ~Color;
         constexpr auto Castle = Allies == White ? (h1|f1) : (h8|f8);
         constexpr auto Down = Allies == White ? South : North;
 
-        const auto [piece, origin, target, flags] = Move::Decode(move);
+        const auto [piece, origin, target, flags] = move;//Move::Decode(move);
 
         Board.to_play    = Enemies;
         Board.en_passant = EnumSquare(0);
+
+        // switch (flags) {
+        // case Quiet:
+        //     auto move_mask = (origin|target);
+        //     Board[Allies] ^= (Board[piece] ^= move_mask, move_mask);
+        //     if (piece == King) {
+        //         constexpr auto CastlingRightsIdx = Allies == White ? 0 : 2;
+        //         Board.castling_rights[CastlingRightsIdx]   = 0;
+        //         Board.castling_rights[CastlingRightsIdx+1] = 0;
+        //     } else if (piece == Rooks) {
+
+        //     }
+        // }
 
         if (flags == Quiet) {
             auto move_mask = (origin|target);
@@ -128,11 +146,11 @@ struct alignas(4) Move final {
                 flags == PromotionRook   || flags == XPromotionRook   ? Rooks   :
                 flags == PromotionQueen  || flags == XPromotionQueen  ? Queens  : Knights;
             Board[promotion] |= target; Board[Pawns] ^= target;
-        } if (piece == King) {
+        } if (piece == King) { // limit this ?
             constexpr auto CastlingRightsIdx = Allies == White ? 0 : 2;
             Board.castling_rights[CastlingRightsIdx]   = 0;
             Board.castling_rights[CastlingRightsIdx+1] = 0;
-        } if (piece == Rooks) {
+        } if (piece == Rooks) { // and this ?
             if constexpr (Allies == White) {
                 if (origin == h1) Board.castling_rights[0] = 0; // K
                 if (origin == a1) Board.castling_rights[1] = 0; // Q
@@ -148,16 +166,16 @@ struct alignas(4) Move final {
         return !InCheck<Allies>(Utils::IndexLS1B(Board[King] & Board[Allies]));
     }
 
-    friend inline std::ostream& operator<<(std::ostream& os, const Move& move) {
-        auto [piece, origin, target, flags] = Move::Decode(move);
+    // friend inline std::ostream& operator<<(std::ostream& os, const Move& move) {
+    //     auto [piece, origin, target, flags] = Move::Decode(move);
 
-        return os << std::left << std::setw(8) << piece << std::setw(0) << "| "
-                  << origin << '-' << target << " | " << flags;
-    }
+    //     return os << std::left << std::setw(8) << piece << std::setw(0) << "| "
+    //               << origin << '-' << target << " | " << flags;
+    // }
 
-    friend inline bool operator>(const Move& move, const Move& other) {
-        return move.encoded > other.encoded;
-    }
+    // friend inline bool operator>(const Move& move, const Move& other) {
+    //     return move.encoded > other.encoded;
+    // }
 };
 
 
@@ -165,7 +183,7 @@ class MoveGen final {
 public:
     template <EnumColor Color> __attribute__((always_inline))
     static inline auto Run() noexcept -> std::tuple<std::array<Move, 218>, std::uint8_t> {
-        std::array<Move, 218> moves { };
+        std::array<Move, 218> moves;
 
         auto iterator = moves.begin();
         PseudoLegal<Color, Pawns   >(iterator);
@@ -183,8 +201,8 @@ public:
     template <EnumColor Color>
     static std::uint64_t Perft(int depth) noexcept {
         constexpr auto Other = ~Color;
-        std::uint64_t nodes = 0;
         if (depth == 0) return 1ULL;
+        std::uint64_t nodes = 0;
         ChessBoard Old = Board;
         auto [MoveList, nmoves] = MoveGen::Run<Color>();
         for (auto move = 0; move < nmoves; move++) {

@@ -5,10 +5,11 @@
 TARGET  := chess-engine
 
 CC      := g++
-FLAGS   := -Wall -Wextra -fconstexpr-ops-limit=1000000000 #-fno-omit-frame-pointer
+FLAGS   := -Wall -Wextra -fconstexpr-ops-limit=1000000000
 STD     := -std=c++17
 RELEASE := -Ofast -march=native -DNDEBUG
 DEBUG   := -g3 -fsanitize=address,undefined
+PROFILE := -Ofast -march=native -ggdb -fno-omit-frame-pointer
 LIBS    :=
 
 OBJDIR  := obj
@@ -28,6 +29,9 @@ debug:   all
 
 release: FLAGS += $(RELEASE)
 release: all
+
+profile: FLAGS += $(PROFILE)
+profile: all
 
 all: build $(TARGET)
 	@$(ECHO) $(FINISHED) "$(GRN)COMPILING $(RST)\n"
@@ -73,7 +77,7 @@ info:
 	@echo -e "$(GRN)OBJECTS:$(BLU)\n $(patsubst %.cpp,  %.o\n,$(SRC))"
 	@echo -e "$(GRN)DEPENDS:$(BLU)\n $(patsubst %.cpp,  %.d\n,$(SRC))"
 
-.PHONY: all build debug release clean info
+.PHONY: all build debug release profile clean info
 
 ############################################################################
 ######################### PROGRESS INDICATION TOOLS ########################
