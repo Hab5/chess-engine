@@ -184,9 +184,9 @@ public:
 
     [[nodiscard]] static _constexpr auto Magics_SOA() noexcept {
         struct Magics {
-            std::array<std::array<Bitboard, 512>, 64>  Attacks;
-            std::array<std::uint64_t, 64>              Numbers;
-            std::array<Bitboard, 64>                   Masks;
+            const std::array<std::array<Bitboard, 512>, 64>  Attacks;
+            const std::array<std::uint64_t, 64>              Numbers;
+            const std::array<Bitboard, 64>                   Masks;
         };
 
         return Magics {
@@ -309,9 +309,9 @@ public:
 
     [[nodiscard]] static _constexpr auto Magics_SOA() {
         struct Magics {
-            std::array<std::array<Bitboard, 4096>, 64> Attacks;
-            std::array<std::uint64_t, 64>              Numbers;
-            std::array<Bitboard, 64>                   Masks;
+            const std::array<std::array<Bitboard, 4096>, 64> Attacks;
+            const std::array<std::uint64_t, 64>              Numbers;
+            const std::array<Bitboard, 64>                   Masks;
         };
 
         return Magics {

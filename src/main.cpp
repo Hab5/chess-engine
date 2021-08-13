@@ -44,7 +44,7 @@ constexpr inline EnumMoveFlags operator|(EnumMoveFlags lhs, EnumMoveFlags rhs) n
 #define POSITION "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"
 ChessBoard Board(STARTING_POSITION);
 
-template <EnumColor Color>
+template <EnumColor Color> 
 [[nodiscard]] inline auto InCheck(EnumSquare square) noexcept {
     const auto enemies   = Board[~Color];
     const auto occupancy = Board[ Color] | enemies;
@@ -59,7 +59,6 @@ template <EnumColor Color>
 }
 
 struct alignas(4) Move final {
-    // std::uint16_t encoded;
     EnumPiece     piece;
     EnumSquare    origin;
     EnumSquare    target;
@@ -77,7 +76,7 @@ struct alignas(4) Move final {
     }
 
     template<EnumColor Color> [[nodiscard]] __attribute__((always_inline))
-    static auto Make(Move& move) noexcept {
+    static inline auto Make(Move& move) noexcept {
         constexpr auto Allies    = Color, Enemies = ~Color;
         constexpr auto Down      = Allies == White ? South : North;
         constexpr auto KingRook  = Allies == White ? h1 : h8;
@@ -87,6 +86,7 @@ struct alignas(4) Move final {
         constexpr auto Qq        = Allies == White ? 1 : 3;
 
         const auto [piece, origin, target, flags] = move;
+
         Board.to_play    = Enemies;
         Board.en_passant = EnumSquare(0);
 
@@ -107,8 +107,14 @@ struct alignas(4) Move final {
         ////////////////////////////////////// CAPTURE ///////////////////////////////////////
 
         if (flags & Capture) {
-            std::for_each(&Board[Pawns], &Board[King],
-            [&, t=target](auto& set) { if (set & t) Board[Enemies] ^= (set ^= t, t); });
+            for (auto set = &Board[Pawns]; set != &Board[King]; ++set) {
+                if (*set & target) {
+                    Board[Enemies] ^= (*set ^= target, target);
+                    break;
+                }
+            }
+            // std::for_each(&Board[Pawns], &Board[King],
+            // [&, t=target](auto& set) { if (set & t) Board[Enemies] ^= (set ^= t, t); });
         }
 
         ////////////////////////////////////// SPECIAL ///////////////////////////////////////
@@ -159,12 +165,12 @@ public:
         std::array<Move, 218> moves;
 
         auto iterator = moves.begin();
-        PseudoLegal<Color, Pawns   >(iterator);
-        PseudoLegal<Color, Knights >(iterator);
-        PseudoLegal<Color, Bishops >(iterator);
-        PseudoLegal<Color, Rooks   >(iterator);
-        PseudoLegal<Color, Queens  >(iterator);
-        PseudoLegal<Color, King    >(iterator);
+        PseudoLegal<Color, Pawns  >(iterator);
+        PseudoLegal<Color, Knights>(iterator);
+        PseudoLegal<Color, Bishops>(iterator);
+        PseudoLegal<Color, Rooks  >(iterator);
+        PseudoLegal<Color, Queens >(iterator);
+        PseudoLegal<Color, King   >(iterator);
 
         const auto nmoves = std::distance(moves.begin(), iterator);
         return { moves, nmoves };
@@ -199,8 +205,9 @@ private:
     template <EnumColor Color>
     static std::uint64_t _Perft(int depth) noexcept {
         constexpr auto Other = ~Color;
-        if (depth == 0) return 1ULL;
         std::uint64_t nodes = 0;
+        if (depth == 0) return 1ULL;
+
         ChessBoard Old = Board;
         auto [MoveList, nmoves] = MoveGen::Run<Color>();
         for (auto move = 0; move < nmoves; move++) {
@@ -221,22 +228,23 @@ private:
         /////////////////////////////////////// PAWNS ////////////////////////////////////////
 
         if constexpr(Piece == Pawns) {
-            constexpr auto RelativeUp    = (Color == White ? North  : South );
             constexpr auto StartingRank  = (Color == White ? Rank_2 : Rank_7);
             constexpr auto PromotionRank = (Color == White ? Rank_8 : Rank_1);
+            constexpr auto Up            = (Color == White ? North  : South );
 
-            auto empty     = ~occupancy;
-
-            EnumSquare target = origin + RelativeUp;
-            if ((target & PromotionRank) & empty) {
-                *Moves++ = Move::Encode<Piece>(origin, target, PromotionKnight);
-                *Moves++ = Move::Encode<Piece>(origin, target, PromotionBishop);
-                *Moves++ = Move::Encode<Piece>(origin, target, PromotionRook  );
-                *Moves++ = Move::Encode<Piece>(origin, target, PromotionQueen );
-            } else if (target & empty) {
-                *Moves++ = Move::Encode<Piece>(origin, target, Quiet);
-                if ((origin & StartingRank) && ((target+RelativeUp) & empty))
-                    *Moves++ = Move::Encode<Piece>(origin, (target+RelativeUp), DoublePush);
+            auto empty = ~occupancy;
+            EnumSquare target = origin + Up;
+            if (target & empty) {
+                if (target & ~PromotionRank) {
+                    *Moves++ = Move::Encode<Piece>(origin, target, Quiet);
+                    if ((origin & StartingRank) && ((target+Up) & empty))
+                        *Moves++ = Move::Encode<Piece>(origin, (target+Up), DoublePush);
+                } else {
+                    *Moves++ = Move::Encode<Piece>(origin, target, PromotionKnight);
+                    *Moves++ = Move::Encode<Piece>(origin, target, PromotionBishop);
+                    *Moves++ = Move::Encode<Piece>(origin, target, PromotionRook  );
+                    *Moves++ = Move::Encode<Piece>(origin, target, PromotionQueen );
+                }
             }
 
             auto attacks = GetAttack<Color, Piece>::On(origin) & Board[!Color];
@@ -258,7 +266,7 @@ private:
 
         /////////////////////////////////// KNIGHTS / KING ///////////////////////////////////
 
-        if constexpr(Piece == King || Piece == Knights) {
+        if constexpr(Piece == Knights || Piece == King) {
             auto attacks = GetAttack<Piece>::On(origin) & ~Board[Color];
             while (attacks) {
                 auto attack = Utils::PopLS1B(attacks);
@@ -298,10 +306,7 @@ private:
 
         if constexpr(Piece == Bishops || Piece == Rooks || Piece == Queens) {
             auto attacks = Bitboard(0);
-            if constexpr(Piece == Queens)
-                attacks  = (GetAttack<Bishops>::On(origin, occupancy)
-                         |  GetAttack<Rooks  >::On(origin, occupancy)) & ~Board[Color];
-            else attacks =  GetAttack<Piece  >::On(origin, occupancy)  & ~Board[Color];
+            attacks =  GetAttack<Piece>::On(origin, occupancy) & ~Board[Color];
             while (attacks) {
                 auto attack = Utils::PopLS1B(attacks);
                 if (attack & ~Board[!Color])
@@ -318,9 +323,9 @@ private:
     ~MoveGen()=delete;
 };
 
-
+#include <sys/resource.h>
 int main(int argc, char* argv[]) { (void)argc;
-    std::cout << Board << std::endl;
+    std::cout << sizeof(ChessBoard) << " " << alignof(ChessBoard) << "\n" << Board << std::endl;
     MoveGen::Perft(std::atoi(argv[1]));
     return 0;
 }

@@ -63,7 +63,7 @@ public:
     }
 
 private:
-    static _constexpr auto Magics = Generator::Attacks<Bishops>::Magics_SOA();
+    const static _constexpr auto Magics = Generator::Attacks<Bishops>::Magics_SOA();
 
      GetAttack() = delete;
     ~GetAttack() = delete;
@@ -82,7 +82,7 @@ public:
     }
 
 private:
-    static _constexpr auto Magics = Generator::Attacks<Rooks>::Magics_SOA();
+    const static _constexpr auto Magics = Generator::Attacks<Rooks>::Magics_SOA();
 
      GetAttack() = delete;
     ~GetAttack() = delete;

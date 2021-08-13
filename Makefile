@@ -7,8 +7,8 @@ TARGET  := chess-engine
 CC      := clang++
 FLAGS   := -Wall -Wextra -fconstexpr-steps=1000000000
 STD     := -std=c++17
-RELEASE := -Ofast -march=native -DNDEBUG
-DEBUG   := -g3 -fsanitize=address,undefined
+RELEASE := -Ofast -march=native -ggdb -DNDEBUG
+DEBUG   := -ggdb -fno-omit-frame-pointer -fsanitize=address,undefined
 PROFILE := -Ofast -march=native -ggdb -fno-omit-frame-pointer
 LIBS    :=
 
