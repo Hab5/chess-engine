@@ -4,12 +4,12 @@
 
 TARGET  := chess-engine
 
-CC      := clang++
-FLAGS   := -Wall -Wextra -fconstexpr-steps=1000000000
+CC      :=  clang++
+FLAGS   := -Wall -Wextra #-fconstexpr-steps=1000000000
 STD     := -std=c++17
-RELEASE := -Ofast -march=native -ggdb -DNDEBUG
+RELEASE := -Ofast -march=native -flto -DNDEBUG
+PROFILE := -Ofast -march=native -g3 -ggdb -fno-omit-frame-pointer
 DEBUG   := -ggdb -fno-omit-frame-pointer -fsanitize=address,undefined
-PROFILE := -Ofast -march=native -ggdb -fno-omit-frame-pointer
 LIBS    :=
 
 OBJDIR  := obj
@@ -24,14 +24,14 @@ INC     := $(wildcard *.hpp) $(wildcard */*.hpp)
 OBJ     := $(patsubst %.cpp,$(OBJDIR)/%.o,$(SRC))
 DEPS    := $(patsubst %.cpp,$(OBJDIR)/%.d,$(SRC))
 
-debug:   FLAGS += $(DEBUG)
-debug:   all
-
 release: FLAGS += $(RELEASE)
 release: all
 
 profile: FLAGS += $(PROFILE)
 profile: all
+
+debug:   FLAGS += $(DEBUG)
+debug:   all
 
 all: build $(TARGET)
 	@$(ECHO) $(FINISHED) "$(GRN)COMPILING $(RST)\n"

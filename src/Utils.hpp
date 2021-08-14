@@ -121,15 +121,5 @@ public:
     //     }
     //     if constexpr (FlipDirection == Diagonal)
     //         return bitboard; // TODO
-
-    //     // constexpr auto flip_diagonal = [](Bitboard bitboard) noexcept {
-    //     //     return bitboard; // TODO
-    //     // };
-
-    //     // switch (FlipDirection) {
-    //     // case Vertical  : return __builtin_bswap64(bitboard);
-    //     // case Horizontal: return flip_horizontal(bitboard);
-    //     // case Diagonal  : return flip_diagonal(bitboard);
-    //     // }
     // }
 };

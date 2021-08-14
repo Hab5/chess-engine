@@ -41,6 +41,4 @@ private:
     int            full_moves;
     std::bitset<4> castling_rights;
     std::array<Bitboard, 8> pieces { };
-
-
 };

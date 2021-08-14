@@ -58,7 +58,7 @@ public:
     [[nodiscard]] static _constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
         occupancy &= Magics.Masks[square];
         occupancy *= Magics.Numbers[square];
-        occupancy >>= 64-9;
+        occupancy >>= (64-9);
         return Magics.Attacks[square][occupancy];
     }
 
@@ -77,7 +77,7 @@ public:
     [[nodiscard]] static _constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
         occupancy &= Magics.Masks[square];
         occupancy *= Magics.Numbers[square];
-        occupancy >>= 64-12;
+        occupancy >>= (64-12);
         return Magics.Attacks[square][occupancy];
     }
 

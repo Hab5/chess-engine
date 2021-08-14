@@ -175,7 +175,7 @@ public:
         std::array<Magic, 64> Magics;
         for (EnumSquare square = a1; square <= h8; ++square) {
             Magics[square] = Magic {
-                .Mask   = masks[square],
+                .Mask   = masks  [square],
                 .Number = numbers[square],
                 .Attack = attacks[square]
             };
@@ -216,6 +216,7 @@ private:
         0x84004d804d10820ULL,  0x2101010040202002ULL, 0x8000400160241020ULL, 0x42100000010222a0ULL,
         0x1802022020200c0ULL,  0x200000490881200ULL,  0x30000480529101c0ULL, 0x100a803082114022ULL,
     };
+
      Attacks() = delete;
     ~Attacks() = delete;
 };
@@ -300,7 +301,7 @@ public:
         std::array<Magic, 64> Magics;
         for (EnumSquare square = a1; square <= h8; ++square) {
             Magics[square] = Magic {
-                .Mask   = masks[square],
+                .Mask   = masks  [square],
                 .Number = numbers[square],
                 .Attack = attacks[square]
             };
