@@ -113,11 +113,11 @@ public:
         } return masks;
     }
 
-    [[nodiscard]] static _constexpr auto MaskTableBitCount() noexcept {
+    [[nodiscard]] static _constexpr auto MaskTablePopCount() noexcept {
         std::array<Bitboard, 64> masks = MaskTable();
         std::array<int, 64> masks_bitcount = { };
         for (EnumSquare square = a1; square <= h8; ++square)
-            masks_bitcount[square] = Utils::BitCount(masks[square]);
+            masks_bitcount[square] = Utils::PopCount(masks[square]);
         return masks_bitcount;
     }
 
@@ -136,8 +136,8 @@ public:
 
         auto get_occupancy = [](int index, Bitboard attack_mask) constexpr {
             Bitboard occupancy = 0ULL;
-            const auto mask_population = Utils::BitCount(attack_mask);
-            for (int count = 0; count < mask_population; count++) {
+            const auto population_count = Utils::PopCount(attack_mask);
+            for (int count = 0; count < population_count; count++) {
                 auto square = Utils::PopLS1B(attack_mask);
                 if (index & (1 << count))
                     occupancy |= (1ULL << square);
@@ -145,16 +145,16 @@ public:
         };
 
         std::array<Bitboard, 64> masks      = MaskTable();
-        std::array<int, 64> masks_bitcount  = MaskTableBitCount();
+        std::array<int, 64> masks_population_count  = MaskTablePopCount();
         std::array<std::array<Bitboard, 512>, 64> attacks { };
         for (EnumSquare square = a1; square <= h8; ++square) {
             auto attack_mask = masks[square];
-            auto relevant_bits = masks_bitcount[square];
-            int occupancy_idx = 1 << relevant_bits;
-            for (int idx = 0; idx < occupancy_idx; idx++) {
-                auto occupancy = get_occupancy(idx, attack_mask);
-                int magic_idx = (occupancy * _MagicNumbers[square]) >> (64-9);
-                attacks[square][magic_idx] = get_attack(square, occupancy);
+            auto relevant_bits = masks_population_count[square];
+            int permutations_count = 1 << relevant_bits;
+            for (int index = 0; index < permutations_count; index++) {
+                auto occupancy  = get_occupancy(index, attack_mask);
+                int magic_index = (occupancy * _MagicNumbers[square]) >> (64-9);
+                attacks[square][magic_index] = get_attack(square, occupancy);
             }
         } return attacks;
     }
@@ -163,21 +163,21 @@ public:
 
     [[nodiscard]] static _constexpr auto Magics_AOS() noexcept {
         struct Magic {
+            std::array<Bitboard, 512>  Attack;
             Bitboard                   Mask;
             std::uint64_t              Number;
-            std::array<Bitboard, 512>  Attack;
         };
 
+        auto attacks = Generator::Attacks<Bishops>::AttackTable();
         auto masks   = Generator::Attacks<Bishops>::MaskTable();
         auto numbers = Generator::Attacks<Bishops>::MagicNumbers();
-        auto attacks = Generator::Attacks<Bishops>::AttackTable();
 
         std::array<Magic, 64> Magics;
         for (EnumSquare square = a1; square <= h8; ++square) {
             Magics[square] = Magic {
+                .Attack = attacks[square],
                 .Mask   = masks  [square],
                 .Number = numbers[square],
-                .Attack = attacks[square]
             };
         } return Magics;
     }
@@ -221,6 +221,7 @@ private:
     ~Attacks() = delete;
 };
 
+
 ////////////////////////////////////////// ROOKS //////////////////////////////////////////////
 
 template <>
@@ -239,12 +240,12 @@ public:
         } return masks;
     }
 
-    [[nodiscard]] static _constexpr auto MaskTableBitCount() noexcept {
+    [[nodiscard]] static _constexpr auto MaskTablePopCount() noexcept {
         std::array<Bitboard, 64> masks = MaskTable();
-        std::array<int, 64> masks_bitcount = { };
+        std::array<int, 64> masks_population_count = { };
         for (EnumSquare square = a1; square <= h8; ++square)
-            masks_bitcount[square] = Utils::BitCount(masks[square]);
-        return masks_bitcount;
+            masks_population_count[square] = Utils::PopCount(masks[square]);
+        return masks_population_count;
     }
 
     [[nodiscard]] static _constexpr auto AttackTable() noexcept {
@@ -262,8 +263,8 @@ public:
 
         auto get_occupancy = [](int index, Bitboard attack_mask) constexpr {
             Bitboard occupancy = 0ULL;
-            const auto mask_population = Utils::BitCount(attack_mask);
-            for (int count = 0; count < mask_population; count++) {
+            const auto population_count = Utils::PopCount(attack_mask);
+            for (int count = 0; count < population_count; count++) {
                 auto square = Utils::PopLS1B(attack_mask);
                 if (index & (1 << count))
                     occupancy |= (1ULL << square);
@@ -271,16 +272,16 @@ public:
         };
 
         std::array<Bitboard, 64> masks = MaskTable();
-        std::array<int, 64> masks_bitcount  = MaskTableBitCount();
+        std::array<int, 64> masks_population_count  = MaskTablePopCount();
         std::array<std::array<Bitboard, 4096>, 64> attacks { };
         for (EnumSquare square = a1; square <= h8; ++square) {
             auto attack_mask = masks[square];
-            auto relevant_bits = masks_bitcount[square];
-            int occupancy_idx = 1 << relevant_bits;
-            for (int idx = 0; idx < occupancy_idx; idx++) {
+            auto population_count = masks_population_count[square];
+            int permutations_count = 1 << population_count;
+            for (int idx = 0; idx < permutations_count; idx++) {
                 auto occupancy = get_occupancy(idx, attack_mask);
-                int magic_idx = (occupancy * _MagicNumbers[square]) >> (64-12);
-                attacks[square][magic_idx] = get_attack(square, occupancy);
+                int magic_index = (occupancy * _MagicNumbers[square]) >> (64-12);
+                attacks[square][magic_index] = get_attack(square, occupancy);
             }
         } return attacks;
     }
@@ -289,21 +290,21 @@ public:
 
     [[nodiscard]] static _constexpr auto Magics_AOS() {
         struct Magic {
+            std::array<Bitboard, 4096> Attack;
             Bitboard                   Mask;
             std::uint64_t              Number;
-            std::array<Bitboard, 4096> Attack;
         };
 
+        auto attacks = Generator::Attacks<Rooks>::AttackTable();
         auto masks   = Generator::Attacks<Rooks>::MaskTable();
         auto numbers = Generator::Attacks<Rooks>::MagicNumbers();
-        auto attacks = Generator::Attacks<Rooks>::AttackTable();
 
         std::array<Magic, 64> Magics;
         for (EnumSquare square = a1; square <= h8; ++square) {
             Magics[square] = Magic {
+                .Attack = attacks[square],
                 .Mask   = masks  [square],
                 .Number = numbers[square],
-                .Attack = attacks[square]
             };
         } return Magics;
     }
@@ -344,6 +345,8 @@ private:
     Attacks() = delete;
    ~Attacks() = delete;
 };
+
+
 
 }
 
@@ -447,4 +450,330 @@ private:
 //         #undef  SET_SQUARE
 //         return a;
 //     }
+// };
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// FANCY MAGIC BITBOARDS ////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////// BISHOPS ///////////////////////////////////////////
+
+// template <>
+// class Attacks<Bishops> final {
+// public:
+//      [[nodiscard]] static _constexpr auto MaskTable() noexcept {
+//         std::array<Bitboard, 64> masks { };
+//         for (EnumSquare square = a1; square <= h8; ++square) {
+//             int tr = square / 8, tf = square % 8; // 2D Square Index
+//             #define SET_SQUARE masks[square] |= EnumSquare(f+r*8);
+//             for (int r = tr+1, f = tf+1; r <= 6 && f <= 6; r++,f++) SET_SQUARE // NE
+//             for (int r = tr+1, f = tf-1; r <= 6 && f >= 1; r++,f--) SET_SQUARE // NW
+//             for (int r = tr-1, f = tf+1; r >= 1 && f <= 6; r--,f++) SET_SQUARE // SE
+//             for (int r = tr-1, f = tf-1; r >= 1 && f >= 1; r--,f--) SET_SQUARE // SW
+//             #undef  SET_SQUARE
+//         } return masks;
+//     }
+
+//     [[nodiscard]] static _constexpr auto MaskTableBitCount() noexcept {
+//         std::array<Bitboard, 64> masks = MaskTable();
+//         std::array<int, 64> masks_bitcount = { };
+//         for (EnumSquare square = a1; square <= h8; ++square)
+//             masks_bitcount[square] = Utils::BitCount(masks[square]);
+//         return masks_bitcount;
+//     }
+
+//     [[nodiscard]] static _constexpr auto AttackTable() noexcept {
+//          auto get_attack = [](EnumSquare square, Bitboard occupancy) constexpr {
+//             Bitboard attack = 0ULL, b = 0ULL, o = occupancy;
+//             int tr = square / 8, tf = square % 8; // 2D Square Index
+//             #define SET_SQUARE { b=0; b|=EnumSquare(f+r*8); attack|=b; if (b&o) break; }
+//             for (int r = tr+1, f = tf+1; r <= 7 && f <= 7; r++,f++) SET_SQUARE // NE
+//             for (int r = tr+1, f = tf-1; r <= 7 && f >= 0; r++,f--) SET_SQUARE // NW
+//             for (int r = tr-1, f = tf+1; r >= 0 && f <= 7; r--,f++) SET_SQUARE // SE
+//             for (int r = tr-1, f = tf-1; r >= 0 && f >= 0; r--,f--) SET_SQUARE // SW
+//             #undef  SET_SQUARE
+//             return attack;
+//         };
+
+//         auto get_occupancy = [](int index, Bitboard attack_mask) constexpr {
+//             Bitboard occupancy = 0ULL;
+//             const auto mask_population = Utils::BitCount(attack_mask);
+//             for (int count = 0; count < mask_population; count++) {
+//                 auto square = Utils::PopLS1B(attack_mask);
+//                 if (index & (1 << count))
+//                     occupancy |= (1ULL << square);
+//             } return occupancy;
+//         };
+
+//         std::array<Bitboard, 64> masks          = MaskTable();
+//         std::array<int,      64> masks_bitcount = MaskTableBitCount();
+
+//         for (EnumSquare square = a1; square <= h8; ++square) {
+
+//             auto attack_mask   = masks[square];
+//             auto relevant_bits = masks_bitcount[square];
+//             int  permutations  = 1 << relevant_bits;
+
+//             for (int index = 0; index < permutations; index++) {
+//                 auto occupancy = get_occupancy(index, attack_mask);
+//                 int magic_index = (occupancy * Numbers[square]) >> Shifts[square];
+//                 *(Pointers[square] + magic_index) = get_attack(square, occupancy);
+//             }
+//         }
+//     }
+
+//     [[nodiscard]] static _constexpr auto FancyMagics_SOA() noexcept {
+//         struct Magic {
+//             // std::array<std::uint64_t, 5248> Table;
+//             std::array<Bitboard*,       64> Attack;
+//             std::array<Bitboard,        64> Mask;
+//             std::array<std::uint64_t,   64> Number;
+//             std::array<std::int32_t,    64> Shift;
+//         };
+
+//         Generator::Attacks<Bishops>::AttackTable();
+
+//         return Magic {
+//             // .Table   = Table,
+//             .Attack  = Pointers,
+//             .Mask    = MaskTable(),
+//             .Number  = Numbers,
+//             .Shift   = Shifts,
+//         };
+//     }
+
+//     [[nodiscard]] static _constexpr auto FancyMagics_AOS() noexcept {
+//         struct Magic {
+//             Bitboard*     Attack;
+//             Bitboard      Mask;
+//             std::uint64_t Number;
+//             int           Shift;
+//         };
+
+//         Generator::Attacks<Bishops>::AttackTable();
+//         std::array<Magic, 64> Magics { };
+//         for (auto square = a1; square <= h8; ++square) {
+//             Magics[square] = Magic {
+//                 .Attack  = Pointers[square],
+//                 .Mask    = MaskTable()[square],
+//                 .Number  = Numbers[square],
+//                 .Shift   = Shifts[square],
+//             };
+//         }
+//         return Magics;
+//     }
+
+
+// private:
+
+//     static inline std::array<std::uint64_t, 5248> Table { };
+//     static inline std::array<std::uint64_t*,  64> Pointers = {
+//     &Table[0] + 4992, &Table[0] + 2624, &Table[0] + 256,  &Table[0] + 896,
+//     &Table[0] + 1280, &Table[0] + 1664, &Table[0] + 4800, &Table[0] + 5120,
+//     &Table[0] + 2560, &Table[0] + 2656, &Table[0] + 288,  &Table[0] + 928,
+//     &Table[0] + 1312, &Table[0] + 1696, &Table[0] + 4832, &Table[0] + 4928,
+//     &Table[0] + 0,    &Table[0] + 128,  &Table[0] + 320,  &Table[0] + 960,
+//     &Table[0] + 1344, &Table[0] + 1728, &Table[0] + 2304, &Table[0] + 2432,
+//     &Table[0] + 32,   &Table[0] + 160,  &Table[0] + 448,  &Table[0] + 2752,
+//     &Table[0] + 3776, &Table[0] + 1856, &Table[0] + 2336, &Table[0] + 2464,
+//     &Table[0] + 64,   &Table[0] + 192,  &Table[0] + 576,  &Table[0] + 3264,
+//     &Table[0] + 4288, &Table[0] + 1984, &Table[0] + 2368, &Table[0] + 2496,
+//     &Table[0] + 96,   &Table[0] + 224,  &Table[0] + 704,  &Table[0] + 1088,
+//     &Table[0] + 1472, &Table[0] + 2112, &Table[0] + 2400, &Table[0] + 2528,
+//     &Table[0] + 2592, &Table[0] + 2688, &Table[0] + 832,  &Table[0] + 1216,
+//     &Table[0] + 1600, &Table[0] + 2240, &Table[0] + 4864, &Table[0] + 4960,
+//     &Table[0] + 5056, &Table[0] + 2720, &Table[0] + 864,  &Table[0] + 1248,
+//     &Table[0] + 1632, &Table[0] + 2272, &Table[0] + 4896, &Table[0] + 5184 };
+
+//     const static inline std::array<std::uint64_t, 64> Numbers {
+//     0x0002020202020200ULL, 0x0002020202020000ULL, 0x0004010202000000ULL, 0x0004040080000000ULL,
+//     0x0001104000000000ULL, 0x0000821040000000ULL, 0x0000410410400000ULL, 0x0000104104104000ULL,
+//     0x0000040404040400ULL, 0x0000020202020200ULL, 0x0000040102020000ULL, 0x0000040400800000ULL,
+//     0x0000011040000000ULL, 0x0000008210400000ULL, 0x0000004104104000ULL, 0x0000002082082000ULL,
+//     0x0004000808080800ULL, 0x0002000404040400ULL, 0x0001000202020200ULL, 0x0000800802004000ULL,
+//     0x0000800400A00000ULL, 0x0000200100884000ULL, 0x0000400082082000ULL, 0x0000200041041000ULL,
+//     0x0002080010101000ULL, 0x0001040008080800ULL, 0x0000208004010400ULL, 0x0000404004010200ULL,
+//     0x0000840000802000ULL, 0x0000404002011000ULL, 0x0000808001041000ULL, 0x0000404000820800ULL,
+//     0x0001041000202000ULL, 0x0000820800101000ULL, 0x0000104400080800ULL, 0x0000020080080080ULL,
+//     0x0000404040040100ULL, 0x0000808100020100ULL, 0x0001010100020800ULL, 0x0000808080010400ULL,
+//     0x0000820820004000ULL, 0x0000410410002000ULL, 0x0000082088001000ULL, 0x0000002011000800ULL,
+//     0x0000080100400400ULL, 0x0001010101000200ULL, 0x0002020202000400ULL, 0x0001010101000200ULL,
+//     0x0000410410400000ULL, 0x0000208208200000ULL, 0x0000002084100000ULL, 0x0000000020880000ULL,
+//     0x0000001002020000ULL, 0x0000040408020000ULL, 0x0004040404040000ULL, 0x0002020202020000ULL,
+//     0x0000104104104000ULL, 0x0000002082082000ULL, 0x0000000020841000ULL, 0x0000000000208800ULL,
+//     0x0000000010020200ULL, 0x0000000404080200ULL, 0x0000040404040400ULL, 0x0002020202020200ULL };
+
+//     const static inline std::array<int, 64> Shifts {
+//     58, 59, 59, 59, 59, 59, 59, 58,
+// 	59, 59, 59, 59, 59, 59, 59, 59,
+// 	59, 59, 57, 57, 57, 57, 59, 59,
+// 	59, 59, 57, 55, 55, 57, 59, 59,
+// 	59, 59, 57, 55, 55, 57, 59, 59,
+// 	59, 59, 57, 57, 57, 57, 59, 59,
+// 	59, 59, 59, 59, 59, 59, 59, 59,
+// 	58, 59, 59, 59, 59, 59, 59, 58 };
+
+//      Attacks() = delete;
+//     ~Attacks() = delete;
+// };
+
+////////////////////////////////////////// ROOKS //////////////////////////////////////////////
+
+// template <>
+// class Attacks<Rooks> final {
+// public:
+//      [[nodiscard]] static _constexpr auto MaskTable() noexcept {
+//         std::array<Bitboard, 64> masks { };
+//         for (EnumSquare square = a1; square <= h8; ++square) {
+//             int tr = square / 8, tf = square % 8; // 2D Square Index
+//             #define SET_SQUARE masks[square] |= EnumSquare(f+r*8);
+//             for (int r = tr+1, f = tf;   r <= 6; r++) SET_SQUARE // N
+//             for (int r = tr-1, f = tf;   r >= 1; r--) SET_SQUARE // S
+//             for (int r = tr,   f = tf+1; f <= 6; f++) SET_SQUARE // E
+//             for (int r = tr,   f = tf-1; f >= 1; f--) SET_SQUARE // W
+//             #undef  SET_SQUARE
+//         } return masks;
+//     }
+
+//     [[nodiscard]] static _constexpr auto MaskTableBitCount() noexcept {
+//         std::array<Bitboard, 64> masks = MaskTable();
+//         std::array<int, 64> masks_bitcount = { };
+//         for (EnumSquare square = a1; square <= h8; ++square)
+//             masks_bitcount[square] = Utils::BitCount(masks[square]);
+//         return masks_bitcount;
+//     }
+
+//     [[nodiscard]] static _constexpr auto AttackTable() noexcept {
+//         auto get_attack = [](EnumSquare square, Bitboard occupancy) constexpr {
+//             Bitboard a = 0ULL, rk = 0ULL, o = occupancy;
+//             int tr = square / 8, tf = square % 8;
+//             #define SET_SQUARE { rk=0; rk|=EnumSquare(f+r*8); a|=rk; if (rk&o) break; }
+//             for (int r = tr+1, f = tf;   r <= 7; r++) SET_SQUARE // N
+//             for (int r = tr-1, f = tf;   r >= 0; r--) SET_SQUARE // S
+//             for (int r = tr,   f = tf+1; f <= 7; f++) SET_SQUARE // E
+//             for (int r = tr,   f = tf-1; f >= 0; f--) SET_SQUARE // W
+//             #undef  SET_SQUARE
+//             return a;
+//         };
+
+//         auto get_occupancy = [](int index, Bitboard attack_mask) constexpr {
+//             Bitboard occupancy = 0ULL;
+//             const auto mask_population = Utils::BitCount(attack_mask);
+//             for (int count = 0; count < mask_population; count++) {
+//                 auto square = Utils::PopLS1B(attack_mask);
+//                 if (index & (1 << count))
+//                     occupancy |= (1ULL << square);
+//             } return occupancy;
+//         };
+
+//         std::array<Bitboard, 64> masks          = MaskTable();
+//         std::array<int,      64> masks_bitcount = MaskTableBitCount();
+
+//         for (EnumSquare square = a1; square <= h8; ++square) {
+
+//             auto attack_mask   = masks[square];
+//             auto relevant_bits = masks_bitcount[square];
+//             int  permutations  = 1 << relevant_bits;
+
+//             for (int index = 0; index < permutations; index++) {
+//                 auto occupancy = get_occupancy(index, attack_mask);
+//                 int magic_index = (occupancy * Numbers[square]) >> Shifts[square];
+//                 *(Pointers[square] + magic_index) = get_attack(square, occupancy);
+//             }
+//         }
+//     }
+
+//     [[nodiscard]] static _constexpr auto FancyMagics_SOA() noexcept {
+//         struct Magic {
+//             // std::array<std::uint64_t, 102400> Table;
+//             std::array<Bitboard*,     64> Attack;
+//             std::array<Bitboard,      64> Mask;
+//             std::array<std::uint64_t, 64> Number;
+//             std::array<std::int32_t,  64> Shift;
+//         };
+
+//         Generator::Attacks<Rooks>::AttackTable();
+
+//         return Magic {
+//             // .Table   = RTable,
+//             .Attack  = Pointers,
+//             .Mask    = MaskTable(),
+//             .Number  = Numbers,
+//             .Shift   = Shifts,
+//         };
+//     }
+
+//     [[nodiscard]] static _constexpr auto FancyMagics_AOS() noexcept {
+//         struct Magic {
+//             Bitboard*     Attack;
+//             Bitboard      Mask;
+//             std::uint64_t Number;
+//             int           Shift;
+//         };
+
+//         Generator::Attacks<Rooks>::AttackTable();
+//         std::array<Magic, 64> Magics { };
+//         for (auto square = a1; square <= h8; ++square) {
+//             Magics[square] = Magic {
+//                 .Attack  = Pointers[square],
+//                 .Mask    = MaskTable()[square],
+//                 .Number  = Numbers[square],
+//                 .Shift   = Shifts[square],
+//             };
+//         }
+//         return Magics;
+//     }
+
+
+// private:
+
+//     static inline std::array<std::uint64_t, 102400> Table { };
+//     static inline std::array<std::uint64_t*,    64> Pointers = {
+//     &Table[0] + 86016, &Table[0] + 73728, &Table[0] + 36864, &Table[0] + 43008,
+//     &Table[0] + 47104, &Table[0] + 51200, &Table[0] + 77824, &Table[0] + 94208,
+//     &Table[0] + 69632, &Table[0] + 32768, &Table[0] + 38912, &Table[0] + 10240,
+//     &Table[0] + 14336, &Table[0] + 53248, &Table[0] + 57344, &Table[0] + 81920,
+//     &Table[0] + 24576, &Table[0] + 33792, &Table[0] + 6144 , &Table[0] + 11264,
+//     &Table[0] + 15360, &Table[0] + 18432, &Table[0] + 58368, &Table[0] + 61440,
+//     &Table[0] + 26624, &Table[0] + 4096 , &Table[0] + 7168 , &Table[0] + 0    ,
+//     &Table[0] + 2048 , &Table[0] + 19456, &Table[0] + 22528, &Table[0] + 63488,
+//     &Table[0] + 28672, &Table[0] + 5120 , &Table[0] + 8192 , &Table[0] + 1024 ,
+//     &Table[0] + 3072 , &Table[0] + 20480, &Table[0] + 23552, &Table[0] + 65536,
+//     &Table[0] + 30720, &Table[0] + 34816, &Table[0] + 9216 , &Table[0] + 12288,
+//     &Table[0] + 16384, &Table[0] + 21504, &Table[0] + 59392, &Table[0] + 67584,
+//     &Table[0] + 71680, &Table[0] + 35840, &Table[0] + 39936, &Table[0] + 13312,
+//     &Table[0] + 17408, &Table[0] + 54272, &Table[0] + 60416, &Table[0] + 83968,
+//     &Table[0] + 90112, &Table[0] + 75776, &Table[0] + 40960, &Table[0] + 45056,
+//     &Table[0] + 49152, &Table[0] + 55296, &Table[0] + 79872, &Table[0] + 98304 };
+
+//     const static inline std::array<std::uint64_t, 64> Numbers {
+//     0x0080001020400080ULL, 0x0040001000200040ULL, 0x0080081000200080ULL, 0x0080040800100080ULL,
+//     0x0080020400080080ULL, 0x0080010200040080ULL, 0x0080008001000200ULL, 0x0080002040800100ULL,
+//     0x0000800020400080ULL, 0x0000400020005000ULL, 0x0000801000200080ULL, 0x0000800800100080ULL,
+//     0x0000800400080080ULL, 0x0000800200040080ULL, 0x0000800100020080ULL, 0x0000800040800100ULL,
+//     0x0000208000400080ULL, 0x0000404000201000ULL, 0x0000808010002000ULL, 0x0000808008001000ULL,
+//     0x0000808004000800ULL, 0x0000808002000400ULL, 0x0000010100020004ULL, 0x0000020000408104ULL,
+//     0x0000208080004000ULL, 0x0000200040005000ULL, 0x0000100080200080ULL, 0x0000080080100080ULL,
+//     0x0000040080080080ULL, 0x0000020080040080ULL, 0x0000010080800200ULL, 0x0000800080004100ULL,
+//     0x0000204000800080ULL, 0x0000200040401000ULL, 0x0000100080802000ULL, 0x0000080080801000ULL,
+//     0x0000040080800800ULL, 0x0000020080800400ULL, 0x0000020001010004ULL, 0x0000800040800100ULL,
+//     0x0000204000808000ULL, 0x0000200040008080ULL, 0x0000100020008080ULL, 0x0000080010008080ULL,
+//     0x0000040008008080ULL, 0x0000020004008080ULL, 0x0000010002008080ULL, 0x0000004081020004ULL,
+//     0x0000204000800080ULL, 0x0000200040008080ULL, 0x0000100020008080ULL, 0x0000080010008080ULL,
+//     0x0000040008008080ULL, 0x0000020004008080ULL, 0x0000800100020080ULL, 0x0000800041000080ULL,
+//     0x00fffcddfced714aULL, 0x007ffcddfced714aULL, 0x003fffcdffd88096ULL, 0x0000040810002101ULL,
+//     0x0001000204080011ULL, 0x0001000204000801ULL, 0x0001000082000401ULL, 0x0001fffaabfad1a2ULL };
+
+//     const static inline std::array<int, 64> Shifts {
+//     52, 53, 53, 53, 53, 53, 53, 52,
+//     53, 54, 54, 54, 54, 54, 54, 53,
+//     53, 54, 54, 54, 54, 54, 54, 53,
+//     53, 54, 54, 54, 54, 54, 54, 53,
+//     53, 54, 54, 54, 54, 54, 54, 53,
+//     53, 54, 54, 54, 54, 54, 54, 53,
+//     53, 54, 54, 54, 54, 54, 54, 53,
+//     53, 54, 54, 53, 53, 53, 53, 53 };
+
+//      Attacks() = delete;
+//     ~Attacks() = delete;
 // };

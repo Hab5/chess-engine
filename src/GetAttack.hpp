@@ -56,14 +56,22 @@ template <>
 struct GetAttack<Bishops> final {
 public:
     [[nodiscard]] static _constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
+        // STRUCT OF ARRAY
         occupancy &= Magics.Masks[square];
         occupancy *= Magics.Numbers[square];
         occupancy >>= (64-9);
         return Magics.Attacks[square][occupancy];
+
+        // ARRAY OF STRUCT
+        // occupancy &= Magics[square].Mask;
+        // occupancy *= Magics[square].Number;
+        // occupancy >>= (64-9);
+        // return Magics[square].Attack[occupancy];
     }
 
 private:
     const static _constexpr auto Magics = Generator::Attacks<Bishops>::Magics_SOA();
+    // const static _constexpr auto Magics = Generator::Attacks<Bishops>::Magics_AOS();
 
      GetAttack() = delete;
     ~GetAttack() = delete;
@@ -75,14 +83,22 @@ template <>
 struct GetAttack<Rooks> final {
 public:
     [[nodiscard]] static _constexpr auto On(EnumSquare square, Bitboard occupancy) noexcept {
+        // STRUCT OF ARRAY
         occupancy &= Magics.Masks[square];
         occupancy *= Magics.Numbers[square];
         occupancy >>= (64-12);
         return Magics.Attacks[square][occupancy];
+
+        // ARRAY OF STRUCT
+        // occupancy &= Magics[square].Mask;
+        // occupancy *= Magics[square].Number;
+        // occupancy >>= (64-12);
+        // return Magics[square].Attack[occupancy];
     }
 
 private:
     const static _constexpr auto Magics = Generator::Attacks<Rooks>::Magics_SOA();
+    // const static _constexpr auto Magics = Generator::Attacks<Rooks>::Magics_AOS();
 
      GetAttack() = delete;
     ~GetAttack() = delete;

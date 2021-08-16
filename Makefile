@@ -5,14 +5,18 @@
 TARGET  := chess-engine
 
 CC      :=  clang++
-FLAGS   := -Wall -Wextra #-fconstexpr-steps=1000000000
+FLAGS   := -Wall -Wextra -flto -ffunction-sections #-fconstexpr-steps=1000000000
 STD     := -std=c++17
-RELEASE := -Ofast -march=native -flto -DNDEBUG
-PROFILE := -Ofast -march=native -g3 -ggdb -fno-omit-frame-pointer
-DEBUG   := -ggdb -fno-omit-frame-pointer -fsanitize=address,undefined
+RELEASE := -Ofast -march=native -m64 -DNDEBUG -g
+PROFILE := -Ofast -march=native -g3 -fno-omit-frame-pointer
+DEBUG   := -g3 -ggdb -fno-omit-frame-pointer
 LIBS    :=
 
 OBJDIR  := obj
+
+PGO     := $(RELEASE) -g -fprofile-instr-generate
+PGO_USE := -fprofile-instr-use=$(TARGET).profdata
+PGO_ARG := 7
 
 ############################################################################
 ############################## MAKEFILE RULES ##############################
@@ -24,14 +28,25 @@ INC     := $(wildcard *.hpp) $(wildcard */*.hpp)
 OBJ     := $(patsubst %.cpp,$(OBJDIR)/%.o,$(SRC))
 DEPS    := $(patsubst %.cpp,$(OBJDIR)/%.d,$(SRC))
 
-release: FLAGS += $(RELEASE)
+release: FLAGS += $(RELEASE) $(PGO_USE)
 release: all
 
-profile: FLAGS += $(PROFILE)
+profile: FLAGS += $(PROFILE) $(PGO_USE)
 profile: all
 
 debug:   FLAGS += $(DEBUG)
 debug:   all
+
+pgo: FLAGS += $(PGO)
+pgo: clean all
+	@$(ECHO) "$(BLU)STARTED  $(GRN)PROFILING$(RST)"
+	-@rm -f $(TARGET).profraw $(TARGET).profdata
+	@LLVM_PROFILE_FILE=$(TARGET).profraw ./$(TARGET) $(PGO_ARG) 1>/dev/null
+	@$(ECHO) $(FINISHED) "$(GRN)PROFILING$(RST)\n"
+	@llvm-profdata merge -output=$(TARGET).profdata $(TARGET).profraw
+	@make -s clean
+	@make -s release
+	@$(ECHO) $(FINISHED) "$(GRN)PGO$(RST)\n"
 
 all: build $(TARGET)
 	@$(ECHO) $(FINISHED) "$(GRN)COMPILING $(RST)\n"
@@ -77,7 +92,7 @@ info:
 	@echo -e "$(GRN)OBJECTS:$(BLU)\n $(patsubst %.cpp,  %.o\n,$(SRC))"
 	@echo -e "$(GRN)DEPENDS:$(BLU)\n $(patsubst %.cpp,  %.d\n,$(SRC))"
 
-.PHONY: all build debug release profile clean info
+.PHONY: all build debug release profile pgo clean info
 
 ############################################################################
 ######################### PROGRESS INDICATION TOOLS ########################
