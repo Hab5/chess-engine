@@ -16,6 +16,9 @@
 #include <chrono>
 #include <cstring>
 
+#define LIKELY(EXPR) __builtin_expect((bool)(EXPR), true)
+#define UNLIKELY(EXPR) __builtin_expect((bool)(EXPR), false)
+
 enum EnumMoveFlags: std::uint8_t {
     Quiet            = 0b0000,
     DoublePush       = 0b0001,
@@ -75,7 +78,7 @@ struct Move final {
             .flags  = flags
         });
     }
-
+    
     template<EnumColor Color> [[nodiscard]] //__attribute__((always_inline))
     static inline auto Make(ChessBoard& Board, Move& move) noexcept {
         constexpr auto Allies    = Color, Enemies = ~Color;
@@ -102,9 +105,7 @@ struct Move final {
                 if (origin == QueenRook) Board.castling_rights[Qq] = 0;
             }
             return !InCheck<Allies>(Board, Utils::IndexLS1B(Board[King] & Board[Allies]));
-        }
-
-        else { Board.en_passant = EnumSquare(0);
+        } else { Board.en_passant = EnumSquare(0);
 
          ////////////////////////////////////// CAPTURE ///////////////////////////////////////
 
@@ -121,7 +122,7 @@ struct Move final {
 
         ////////////////////////////////////// SPECIAL ///////////////////////////////////////
 
-            else if (flags == DoublePush )
+            else if (flags == DoublePush)
                 Board.en_passant = target + Down;
 
             else if (flags == CastleKing || flags == CastleQueen)
@@ -164,10 +165,9 @@ struct Move final {
 
 class MoveGen final {
 public:
-    struct ret {std::array<Move, 218> mv; int nmv;};
     template <EnumColor Color> //__attribute__((always_inline))
     static inline auto Run(ChessBoard& Board) noexcept
-    -> ret {
+    -> std::tuple<std::array<Move, 218>, int> {
         std::array<Move, 218> moves;
 
         auto iterator = moves.begin();
@@ -179,7 +179,7 @@ public:
         PseudoLegal<Color, King   >(Board, iterator);
 
         const auto nmoves = std::distance(moves.begin(), iterator);
-        return { std::move(moves), (int)nmoves };
+        return { std::move(moves), nmoves };
     }
 
     static std::uint64_t Perft(ChessBoard& Board, int depth) noexcept {
