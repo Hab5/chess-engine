@@ -5,9 +5,9 @@
 TARGET  := chess-engine
 
 CC      :=  clang++
-FLAGS   := -Wall -Wextra -flto -ffunction-sections #-fconstexpr-steps=1000000000
+FLAGS   := -Wall -Wextra -flto -ffunction-sections -fdata-sections -Rpass-missed=.* #-fconstexpr-steps=1000000000
 STD     := -std=c++17
-RELEASE := -Ofast -march=native -m64 -DNDEBUG -ggdb
+RELEASE := -Ofast -march=native -DNDEBUG -g
 PROFILE := -Ofast -march=native -g3 -fno-omit-frame-pointer
 DEBUG   := -g3 -ggdb -fno-omit-frame-pointer
 LIBS    :=
@@ -16,7 +16,7 @@ OBJDIR  := obj
 
 PGO     := $(RELEASE) -g -fprofile-instr-generate
 PGO_USE := -fprofile-instr-use=$(TARGET).profdata
-PGO_ARG := 5
+PGO_ARG := 6
 
 ############################################################################
 ############################## MAKEFILE RULES ##############################

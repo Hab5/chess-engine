@@ -9,8 +9,9 @@
 #include <sstream>
 #include <algorithm>
 
-class ChessBoard final {
+class alignas(64) ChessBoard final {
     friend class  MoveGen;
+    friend class  Perft;
     friend struct Move;
     friend class  FEN;
 public:
@@ -20,11 +21,11 @@ public:
         return os << board.PrettyPrint();
     }
 
-    [[nodiscard]] inline Bitboard& operator[](std::size_t query) noexcept {
+    [[nodiscard]] inline Bitboard& operator[](std::uint8_t query) noexcept {
         return pieces[query];
     }
 
-    [[nodiscard]] inline Bitboard operator[](std::size_t query) const noexcept {
+    [[nodiscard]] inline Bitboard operator[](std::uint8_t query) const noexcept {
         return pieces[query];
     }
 
@@ -35,10 +36,10 @@ public:
 private:
     [[nodiscard]] std::string PrettyPrint() const noexcept;
 
+    std::array<Bitboard, 8> pieces { };
     EnumColor      to_play;
     EnumSquare     en_passant;
+    std::bitset<4> castling_rights;
     int            half_moves;
     int            full_moves;
-    std::bitset<4> castling_rights;
-    std::array<Bitboard, 8> pieces { };
 };

@@ -183,7 +183,7 @@ public:
     }
 
     [[nodiscard]] static _constexpr auto Magics_SOA() noexcept {
-        struct Magics {
+        struct  Magics {
             const std::array<std::array<Bitboard, 512>, 64>  Attacks;
             const std::array<std::uint64_t, 64>              Numbers;
             const std::array<Bitboard, 64>                   Masks;
@@ -310,7 +310,7 @@ public:
     }
 
     [[nodiscard]] static _constexpr auto Magics_SOA() {
-        struct Magics {
+        struct alignas(64) Magics {
             const std::array<std::array<Bitboard, 4096>, 64> Attacks;
             const std::array<std::uint64_t, 64>              Numbers;
             const std::array<Bitboard, 64>                   Masks;
@@ -342,6 +342,7 @@ private:
         0x2010290280420012ULL, 0x800080201040000fULL, 0x300500502402001ULL,  0x40510084200a202ULL,
         0x4801480010010605ULL, 0x4000888020401ULL,    0x2106e08010084ULL,    0x4081040061418102ULL,
     };
+
     Attacks() = delete;
    ~Attacks() = delete;
 };
@@ -620,7 +621,7 @@ private:
 ////////////////////////////////////////// ROOKS //////////////////////////////////////////////
 
 // template <>
-// class Attacks<Rooks> final {
+// class Generator::Attacks<Rooks> final {
 // public:
 //      [[nodiscard]] static _constexpr auto MaskTable() noexcept {
 //         std::array<Bitboard, 64> masks { };
@@ -639,7 +640,7 @@ private:
 //         std::array<Bitboard, 64> masks = MaskTable();
 //         std::array<int, 64> masks_bitcount = { };
 //         for (EnumSquare square = a1; square <= h8; ++square)
-//             masks_bitcount[square] = Utils::BitCount(masks[square]);
+//             masks_bitcount[square] = Utils::PopCount(masks[square]);
 //         return masks_bitcount;
 //     }
 
@@ -658,7 +659,7 @@ private:
 
 //         auto get_occupancy = [](int index, Bitboard attack_mask) constexpr {
 //             Bitboard occupancy = 0ULL;
-//             const auto mask_population = Utils::BitCount(attack_mask);
+//             const auto mask_population = Utils::PopCount(attack_mask);
 //             for (int count = 0; count < mask_population; count++) {
 //                 auto square = Utils::PopLS1B(attack_mask);
 //                 if (index & (1 << count))

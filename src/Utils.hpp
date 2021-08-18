@@ -99,27 +99,27 @@ public:
     }
 
 
-    // template <EnumFlip FlipDirection>
-    // [[nodiscard]] static constexpr Bitboard Flip(Bitboard bitboard);
-
-    // template <>
-    // [[nodiscard]]  constexpr Bitboard Flip<Vertical>(Bitboard bitboard) {
-    //         return __builtin_bswap64(bitboard);
-    // }
     template <EnumFlip FlipDirection>
-    [[nodiscard]] static constexpr Bitboard Flip(Bitboard bitboard) {
-        if constexpr (FlipDirection == Vertical)
+    [[nodiscard]] static constexpr Bitboard Flip(Bitboard bitboard);
+
+    template <>
+    [[nodiscard]]  constexpr Bitboard Flip<Vertical>(Bitboard bitboard) {
             return __builtin_bswap64(bitboard);
-        if constexpr (FlipDirection == Horizontal) {
-            const Bitboard k1 = 0x5555555555555555;
-            const Bitboard k2 = 0x3333333333333333;
-            const Bitboard k4 = 0x0f0f0f0f0f0f0f0f;
-            bitboard = ((bitboard >> 1) & k1) +  2*(bitboard & k1);
-            bitboard = ((bitboard >> 2) & k2) +  4*(bitboard & k2);
-            bitboard = ((bitboard >> 4) & k4) + 16*(bitboard & k4);
-            return bitboard;
-        }
-        if constexpr (FlipDirection == Diagonal)
-            return bitboard; // TODO
     }
+    // template <EnumFlip FlipDirection>
+    // [[nodiscard]] static constexpr Bitboard Flip(Bitboard bitboard) {
+    //     if constexpr (FlipDirection == Vertical)
+    //         return __builtin_bswap64(bitboard);
+    //     if constexpr (FlipDirection == Horizontal) {
+    //         const Bitboard k1 = 0x5555555555555555;
+    //         const Bitboard k2 = 0x3333333333333333;
+    //         const Bitboard k4 = 0x0f0f0f0f0f0f0f0f;
+    //         bitboard = ((bitboard >> 1) & k1) +  2*(bitboard & k1);
+    //         bitboard = ((bitboard >> 2) & k2) +  4*(bitboard & k2);
+    //         bitboard = ((bitboard >> 4) & k4) + 16*(bitboard & k4);
+    //         return bitboard;
+    //     }
+    //     if constexpr (FlipDirection == Diagonal)
+    //         return bitboard; // TODO
+    // }
 };

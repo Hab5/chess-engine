@@ -94,7 +94,8 @@ public:
         // occupancy *= Magics[square].Number;
         // occupancy >>= (64-12);
         // return Magics[square].Attack[occupancy];
-    }
+
+       }
 
 private:
     const static _constexpr auto Magics = Generator::Attacks<Rooks>::Magics_SOA();

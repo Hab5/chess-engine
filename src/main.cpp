@@ -50,10 +50,10 @@ static inline auto InCheck(ChessBoard& Board, EnumSquare square) noexcept {
     const auto enemies   = Board[~Color];
     const auto occupancy = Board[ Color] | enemies;
 
-    #define Pp    (Board[Pawns  ]                  & enemies)
-    #define Nn    (Board[Knights]                  & enemies)
-    #define BbQq ((Board[Bishops] | Board[Queens]) & enemies)
-    #define RrQq ((Board[Rooks  ] | Board[Queens]) & enemies)
+    #define Pp    (Board[Pawns  ]                ) & enemies
+    #define Nn    (Board[Knights]                ) & enemies
+    #define BbQq  (Board[Bishops] | Board[Queens]) & enemies
+    #define RrQq  (Board[Rooks  ] | Board[Queens]) & enemies
 
     if      (GetAttack<Color, Pawns>::On(square)            & Pp  ) return true;
     else if (GetAttack<Knights     >::On(square)            & Nn  ) return true;
@@ -71,16 +71,16 @@ struct Move final {
     template <EnumPiece Piece>
     [[nodiscard]] static inline constexpr auto Encode
     (EnumSquare origin, EnumSquare target, EnumMoveFlags flags) noexcept {
-        return std::move(Move {
+        return Move {
             .piece  = Piece,
             .origin = origin,
             .target = target,
             .flags  = flags
-        });
+        };
     }
     
     template<EnumColor Color> [[nodiscard]] //__attribute__((always_inline))
-    static inline auto Make(ChessBoard& Board, Move& move) noexcept {
+    static inline auto Make(ChessBoard& Board, const Move& move) noexcept {
         constexpr auto Allies    = Color, Enemies = ~Color;
         constexpr auto Down      = Allies == White ? South : North;
         constexpr auto KingRook  = Allies == White ? h1 : h8;
@@ -97,27 +97,21 @@ struct Move final {
             Board.to_play    = Enemies;
             Board.en_passant = EnumSquare(0);
             Board[Allies] ^= (Board[piece] ^= (origin|target), (origin|target));
-            if (piece == King) {
-                Board.castling_rights[Kk] = 0;
-                Board.castling_rights[Qq] = 0;
-            } else if (piece == Rooks) {
+            if (piece == Rooks) {
                 if (origin == KingRook ) Board.castling_rights[Kk] = 0;
                 if (origin == QueenRook) Board.castling_rights[Qq] = 0;
+            } else if (piece == King) {
+                Board.castling_rights[Kk] = 0;
+                Board.castling_rights[Qq] = 0;
             }
             return !InCheck<Allies>(Board, Utils::IndexLS1B(Board[King] & Board[Allies]));
         } else { Board.en_passant = EnumSquare(0);
 
-         ////////////////////////////////////// CAPTURE ///////////////////////////////////////
+         ////////////////////////////////////// CAPTURE //////////////////////////////////////
 
             if (flags & Capture) {
-                for (auto set = &Board[Pawns]; set != &Board[King]; ++set) {
-                    if (*set & target) {
-                        Board[Enemies] ^= (*set ^= target, target);
-                        // break;
-                    }
-                }
-                // std::for_each(&Board[Pawns], &Board[King],
-                // [&, t=target](auto& set) { if (set & t) Board[Enemies] ^= (set ^= t, t); });
+                for (auto set = &Board[Pawns]; set != &Board[King]; ++set)
+                    if (*set & target) Board[Enemies] ^= (*set ^= target, target);
             }
 
         ////////////////////////////////////// SPECIAL ///////////////////////////////////////
@@ -179,39 +173,13 @@ public:
         PseudoLegal<Color, King   >(Board, iterator);
 
         const auto nmoves = std::distance(moves.begin(), iterator);
-        return { std::move(moves), nmoves };
+        return { moves, nmoves };
     }
-
-    static std::uint64_t Perft(ChessBoard& Board, int depth) noexcept {
-        std::uint64_t nodes = 0;
-
-        auto started  = std::chrono::steady_clock::now();
-
-        if (Board.to_play == White)
-            nodes = _Perft<White>(Board, depth);
-        else if (Board.to_play == Black)
-            nodes = _Perft<Black>(Board, depth);
-
-        auto finished = std::chrono::steady_clock::now();
-        auto ms = std::chrono::duration_cast
-                 <std::chrono::milliseconds>
-                 (finished-started).count();
-        
-        auto sec = ms / 1000.00000f;
-        std::cout.imbue(std::locale(""));
-        std::cout << std::fixed << std::setprecision(2);
-        std::cout << "[depth=" << depth << "][" << nodes << "]["
-            << "" << std::setprecision(2) << nodes/sec/1000000 << "Mnps]\n";
-
-        return nodes;
-    }
-
 
 private:
 
-
-    template <EnumColor Color, EnumPiece Piece> //__attribute__((always_inline))
-    static inline auto PseudoLegal(ChessBoard& Board, std::array<Move, 218>::iterator& Moves) noexcept {
+    template <EnumColor Color, EnumPiece Piece> static inline
+    auto PseudoLegal(ChessBoard& Board, std::array<Move, 218>::iterator& Moves) noexcept {
         constexpr auto Allies = Color, Enemies = ~Allies;
         auto set       = (Board[Allies] & Board[ Piece]);
         auto occupancy = (Board[Allies] | Board[Enemies]);
@@ -229,11 +197,10 @@ private:
             auto empty = ~occupancy;
             EnumSquare target = origin + Up;
             if (target & empty) {
-                if (target & ~PromotionRank) {
-                    *Moves++ = Move::Encode<Piece>(origin, target, Quiet);
-                    if ((origin & StartingRank) && ((target+Up) & empty))
-                        *Moves++ = Move::Encode<Piece>(origin, (target+Up), DoublePush);
-                } else {
+                *Moves++ = Move::Encode<Piece>(origin, target, Quiet);
+                if ((origin & StartingRank) && ((target+Up) & empty))
+                    *Moves++ = Move::Encode<Piece>(origin, (target+Up), DoublePush);
+                if (target & PromotionRank) { --Moves;
                     *Moves++ = Move::Encode<Piece>(origin, target, PromotionKnight);
                     *Moves++ = Move::Encode<Piece>(origin, target, PromotionBishop);
                     *Moves++ = Move::Encode<Piece>(origin, target, PromotionRook  );
@@ -313,36 +280,91 @@ private:
         }
     }
 
-    template <EnumColor Color> 
-    static std::uint64_t _Perft(ChessBoard& Board, int depth) noexcept {
-        constexpr auto Other = ~Color;
-        std::uint64_t nodes = 0;
-        if (depth == 0) return 1ULL;
-
-        ChessBoard Old = Board;
-        auto [MoveList, nmoves] = MoveGen::Run<Color>(Board);
-        // if (depth == 1) return nmoves; // Pseudo-legal bulk counting?
-        for (auto move = 0; move < nmoves; move++) {
-            if (Move::Make<Color>(Board, MoveList[move]))
-                nodes += _Perft<Other>(Board, depth-1);
-            Board = Old;
-        } return nodes;
-    }
-
      MoveGen()=delete;
     ~MoveGen()=delete;
 };
 
 
-#define POSITION "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -"
+class Perft final {
+public:
+    static std::uint64_t Run(ChessBoard& Board, int depth) noexcept {
+        std::uint64_t nodes = 0;
 
+        auto started  = std::chrono::steady_clock::now();
+
+        if (depth % 2 == 0) nodes = (Board.to_play ==
+            White ? EvenPerft<White>(Board, depth) :
+                    EvenPerft<Black>(Board, depth));
+
+        if (depth % 2 != 0) nodes = (Board.to_play ==
+            White ? OddPerft<White>(Board, depth) :
+                    OddPerft<Black>(Board, depth));
+
+        auto finished = std::chrono::steady_clock::now();
+        auto ms = std::chrono::duration_cast
+                    <std::chrono::milliseconds>
+                    (finished-started).count();
+
+        auto sec = ms / 1000.00000f;
+        std::cout.imbue(std::locale(""));
+        std::cout << std::fixed << std::setprecision(2);
+        std::cout << "[depth=" << depth << "][" << nodes << "]["
+            << "" << std::setprecision(2) << nodes/sec/1000000 << "Mnps]\n";
+
+        return nodes;
+    }
+
+private:
+
+    template <EnumColor Color> __attribute__((always_inline))
+    static inline std::uint64_t EvenPerft(ChessBoard& Board, int depth) noexcept {
+        constexpr auto Other = ~Color;
+        if (depth == 0) return 1ULL;
+
+        ChessBoard Old = Board;
+
+        auto [move_list, nmoves] = MoveGen::Run<Color>(Board);
+        std::uint64_t nodes = 0;
+        for (auto move = 0; move < nmoves; move++) {
+            if (Move::Make<Color>(Board, move_list[move]))
+                nodes += OddPerft<Other>(Board, depth-1);
+            Board = Old;
+        } return nodes;
+    }
+
+    template <EnumColor Color> __attribute__((noinline))
+    static inline std::uint64_t OddPerft(ChessBoard& Board, int depth) noexcept {
+        constexpr auto Other = ~Color;
+        if (depth == 0) return 1ULL;
+
+        ChessBoard Old = Board;
+
+        auto [move_list, nmoves] = MoveGen::Run<Color>(Board);
+        std::uint64_t nodes = 0;
+        for (auto move = 0; move < nmoves; move++) {
+            if (Move::Make<Color>(Board, move_list[move]))
+                nodes += EvenPerft<Other>(Board, depth-1);
+            Board = Old;
+        } return nodes;
+    }
+
+     Perft()=delete;
+    ~Perft()=delete;
+};
+
+#define WPOS "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1"
+#define BPOS "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1"
+
+#define POSITION "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"
 int main(int argc, char* argv[]) { (void)argc;
 
     ChessBoard Board(STARTING_POSITION);
-    // std::cout  << Board << std::endl;
+    std::cout << Board << std::endl;
+    Perft::Run(Board, std::atoi(argv[1]));
 
-    MoveGen::Perft(Board, std::atoi(argv[1]));
-
+    // Board = ChessBoard(POSITION);
+    // std::cout << Board << std::endl;
+    // Perft::Run(Board, std::atoi(argv[1]));
     // MoveGen::Perft(Board, 1);
     // MoveGen::Perft(Board, 2);
     // MoveGen::Perft(Board, 3);
