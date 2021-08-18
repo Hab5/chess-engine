@@ -98,7 +98,6 @@ public:
         return 0ULL | (1ULL << square);
     }
 
-
     template <EnumFlip FlipDirection>
     [[nodiscard]] static constexpr Bitboard Flip(Bitboard bitboard);
 
@@ -106,6 +105,7 @@ public:
     [[nodiscard]]  constexpr Bitboard Flip<Vertical>(Bitboard bitboard) {
             return __builtin_bswap64(bitboard);
     }
+
     // template <EnumFlip FlipDirection>
     // [[nodiscard]] static constexpr Bitboard Flip(Bitboard bitboard) {
     //     if constexpr (FlipDirection == Vertical)

@@ -1,9 +1,9 @@
-#include "ChessBoard.hpp"
+#include "GameState.hpp"
 #include "FEN.hpp"
 
-ChessBoard::ChessBoard(const std::string& fen) { FEN::Load(fen, *this); }
+GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
 
-[[nodiscard]] std::string ChessBoard::PrettyPrint() const noexcept {
+[[nodiscard]] std::string GameState::PrettyPrint() const noexcept {
     std::stringstream output;
 
     const std::array<std::string, 6> unicode { "♟", "♞", "♝", "♜", "♛", "♚" };

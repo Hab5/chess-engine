@@ -1,7 +1,7 @@
 #include "FEN.hpp"
-#include "ChessBoard.hpp"
+#include "GameState.hpp"
 
-void FEN::Load(const std::string& fen, ChessBoard& board) {
+void FEN::Load(const std::string& fen, GameState& board) {
     std::istringstream stream(fen); std::string token;
     LoadPieces          ((stream >> token, token), board);
     LoadActiveColor     ((stream >> token, token), board);
@@ -11,7 +11,7 @@ void FEN::Load(const std::string& fen, ChessBoard& board) {
     LoadFullMoves       ((stream >> token, token), board, stream.good());
 }
 
-void FEN::LoadPieces(std::string ranks, ChessBoard& board) {
+void FEN::LoadPieces(std::string ranks, GameState& board) {
     if (std::count(ranks.begin(), ranks.end(), '/') != 7)
         throw std::runtime_error("FEN: Syntax Error");
     const auto pieces_ascii = std::string("PNBRQKpnbrqk");
@@ -35,13 +35,13 @@ void FEN::LoadPieces(std::string ranks, ChessBoard& board) {
     }
 }
 
-void FEN::LoadActiveColor(std::string active_color, ChessBoard& board) {
+void FEN::LoadActiveColor(std::string active_color, GameState& board) {
     if (active_color.size() != 1 || (active_color[0] != 'w' && active_color[0] != 'b'))
         throw std::runtime_error("FEN: Syntax Error");
     else board.to_play = (active_color[0] == 'w' ? White : Black);
 }
 
-void FEN::LoadCastlingRights(std::string castling_rights, ChessBoard& board) {
+void FEN::LoadCastlingRights(std::string castling_rights, GameState& board) {
     if (castling_rights.size() > 4) {
             throw std::runtime_error("FEN: Syntax Error");
         return;
@@ -56,7 +56,7 @@ void FEN::LoadCastlingRights(std::string castling_rights, ChessBoard& board) {
     }
 }
 
-void FEN::LoadEnPassant(std::string en_passant, ChessBoard& board) {
+void FEN::LoadEnPassant(std::string en_passant, GameState& board) {
     if (en_passant.size() > 2)
         throw std::runtime_error("FEN: Syntax Error");
     else if (en_passant.size() == 2) {
@@ -69,7 +69,7 @@ void FEN::LoadEnPassant(std::string en_passant, ChessBoard& board) {
     else throw std::runtime_error("FEN: Syntax Error");
 }
 
-void FEN::LoadHalfMoves(std::string half_moves, ChessBoard& board, bool stream_ok) {
+void FEN::LoadHalfMoves(std::string half_moves, GameState& board, bool stream_ok) {
     if (!stream_ok) return void(board.half_moves = 0);
     if (half_moves.size() > 3) throw std::runtime_error("FEN: Syntax Error");
     for (auto c: half_moves)
@@ -80,7 +80,7 @@ void FEN::LoadHalfMoves(std::string half_moves, ChessBoard& board, bool stream_o
     else board.half_moves = value;
 }
 
-void FEN::LoadFullMoves(std::string full_moves, ChessBoard& board, bool stream_ok) {
+void FEN::LoadFullMoves(std::string full_moves, GameState& board, bool stream_ok) {
     if (!stream_ok) return void(board.full_moves = 1);
     if (full_moves.size() > 3) throw std::runtime_error("FEN: Syntax Error");
     for (auto c: full_moves)

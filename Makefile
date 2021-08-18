@@ -5,7 +5,7 @@
 TARGET  := chess-engine
 
 CC      :=  clang++
-FLAGS   := -Wall -Wextra -flto -ffunction-sections -fdata-sections -Rpass-missed=.* #-fconstexpr-steps=1000000000
+FLAGS   := -Wall -Wextra -flto -ffunction-sections -fdata-sections
 STD     := -std=c++17
 RELEASE := -Ofast -march=native -DNDEBUG -g
 PROFILE := -Ofast -march=native -g3 -fno-omit-frame-pointer
