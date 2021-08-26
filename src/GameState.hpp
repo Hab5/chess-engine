@@ -10,11 +10,14 @@
 #include <sstream>
 #include <algorithm>
 
-class alignas(64) GameState final {
-    friend class  MoveGen;
+class GameState final {
+    friend class  MoveGeneration;
+    friend class  Evaluation;
+    friend class  Search;
     friend class  Perft;
-    friend struct Move;
+    friend struct Move; // ocd triggered
     friend class  FEN;
+    friend class  UCI;
     
 public:
     GameState(const std::string& fen=STARTING_POSITION);
@@ -28,11 +31,13 @@ public:
         #define Nn    (Board[Knights]                ) & enemies
         #define BbQq  (Board[Bishops] | Board[Queens]) & enemies
         #define RrQq  (Board[Rooks  ] | Board[Queens]) & enemies
+        #define Kk_   (Board[King   ]                ) & enemies
 
         if      (GetAttack<Color, Pawns>::On(square)            & Pp  ) return true;
         else if (GetAttack<Knights     >::On(square)            & Nn  ) return true;
         else if (GetAttack<Bishops     >::On(square, occupancy) & BbQq) return true;
         else if (GetAttack<Rooks       >::On(square, occupancy) & RrQq) return true;
+        else if (GetAttack<King        >::On(square)            & Kk_ ) return true;
         else return false;
     }
 

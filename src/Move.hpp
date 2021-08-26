@@ -25,6 +25,24 @@ enum EnumMoveFlags: std::uint8_t {
 
 };
 
+inline std::ostream& operator<<(std::ostream& os, const EnumMoveFlags& flags) {
+    return (os << std::string(
+    flags == Quiet            ? "Quiet"                     :
+    flags == DoublePush       ? "DoublePush"                :
+    flags == CastleKing       ? "CastleKing"                :
+    flags == CastleQueen      ? "CastleQueen"               :
+    flags == Capture          ? "Capture"                   :
+    flags == EnPassant        ? "EnPassant"                 :
+    flags == PromotionKnight  ? "PromotionKnight"           :
+    flags == PromotionBishop  ? "PromotionBishops"          :
+    flags == PromotionRook    ? "PromotionRook"             :
+    flags == PromotionQueen   ? "PromotionQueen"            :
+    flags == XPromotionKnight ? "Capture & PromotionKnight" :
+    flags == XPromotionBishop ? "Capture & PromotionBishop" :
+    flags == XPromotionRook   ? "Capture & PromotionRook"   :
+    flags == XPromotionQueen  ? "Capture & PromotionQueen"  : "Empty"));
+}
+
 constexpr inline EnumMoveFlags operator+(EnumMoveFlags lhs, EnumMoveFlags rhs) noexcept {
     return static_cast<EnumMoveFlags>(static_cast<int>(lhs)+static_cast<int>(rhs));
 }
@@ -56,7 +74,8 @@ struct Move final {
         constexpr auto Down      = Allies == White ? South : North;
         constexpr auto KingRook  = Allies == White ? h1 : h8;
         constexpr auto QueenRook = Allies == White ? a1 : a8;
-        constexpr auto Castle    = Allies == White ? (h1|f1) : (h8|f8);
+        constexpr auto CastleK   = Allies == White ? (h1|f1) : (h8|f8);
+        constexpr auto CastleQ   = Allies == White ? (a1|d1) : (a8|d8);
         constexpr auto Kk        = Allies == White ? 0 : 2;
         constexpr auto Qq        = Allies == White ? 1 : 3;
 
@@ -74,8 +93,8 @@ struct Move final {
             } else if (piece == King) {
                 Board.castling_rights[Kk] = 0;
                 Board.castling_rights[Qq] = 0;
-            }
-            return !GameState::InCheck<Allies>(Board, Utils::IndexLS1B(Board[King] & Board[Allies]));
+            } return not GameState::InCheck<Allies>(
+                   Board, Utils::IndexLS1B(Board[King] & Board[Allies]));
         } else { Board.en_passant = EnumSquare(0);
 
          ////////////////////////////////////// CAPTURE //////////////////////////////////////
@@ -90,8 +109,11 @@ struct Move final {
             else if (flags == DoublePush)
                 Board.en_passant = target + Down;
 
-            else if (flags == CastleKing || flags == CastleQueen)
-                Board[Allies] ^= (Board[Rooks] ^= Castle, Castle);
+            else if (flags == CastleKing)
+                Board[Allies] ^= (Board[Rooks] ^= CastleK, CastleK);
+
+            else if (flags == CastleQueen)
+                Board[Allies] ^= (Board[Rooks] ^= CastleQ, CastleQ);
 
             if (flags == EnPassant)
                 Board[Enemies] ^= (Board[Pawns] ^= target+Down, target+Down);
@@ -100,8 +122,12 @@ struct Move final {
                 const auto promotion =
                 flags == PromotionBishop || flags == XPromotionBishop ? Bishops :
                 flags == PromotionRook   || flags == XPromotionRook   ? Rooks   :
-                flags == PromotionQueen  || flags == XPromotionQueen  ? Queens  :Knights;
-                Board[promotion] |= target; Board[Pawns] ^= target;
+                flags == PromotionQueen  || flags == XPromotionQueen  ? Queens  : Knights;
+                Board[Allies] ^= (Board[Pawns] ^= origin, (origin|target));
+                Board[promotion] |= target; Board.to_play = Enemies;
+                return not GameState::InCheck<Allies>(Board, Utils::IndexLS1B(
+                    Board[King] & Board[Allies])
+                );
             }
 
             if (piece == Rooks) {
@@ -112,12 +138,13 @@ struct Move final {
                 Board.castling_rights[Qq] = 0;
             }
 
-
         //////////////////////////////////////////////////////////////////////////////////////
 
             Board.to_play  = Enemies;
             Board[Allies] ^= (Board[piece] ^= (origin|target), (origin|target));
-            return !GameState::InCheck<Allies>(Board, Utils::IndexLS1B(Board[King] & Board[Allies]));
+            return not GameState::InCheck<Allies>(Board, Utils::IndexLS1B(
+                Board[King] & Board[Allies])
+            );
         }
     }
 

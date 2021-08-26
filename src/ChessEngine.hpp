@@ -125,7 +125,8 @@ constexpr inline EnumCompass operator|(EnumCompass lhs, EnumCompass rhs) noexcep
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 inline std::ostream& operator<<(std::ostream& os, const EnumSquare& square) {
-    return (os << std::string(SquareStr[square]));
+    return (os << (square < NoSquare ? std::string(SquareStr[square]) :
+                                       std::string("NoSquare")));
 }
 
 constexpr inline EnumSquare& operator++(EnumSquare& square) noexcept {

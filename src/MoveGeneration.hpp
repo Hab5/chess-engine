@@ -8,7 +8,7 @@
 
 #include <iomanip>
 
-class MoveGen final {
+class MoveGeneration final {
 public:
     template <EnumColor Color>
     static inline auto Run(GameState& Board) noexcept
@@ -92,24 +92,20 @@ private:
 
                 constexpr auto Kk = (Allies == White ? 0 : 2);
                 if (Board.castling_rights[Kk]) {
-                    if (Board[Rooks] & king+3) {
-                        if (!(((king+1) | (king+2)) & occupancy))
-                            if (!GameState::InCheck<Allies>(Board, king)
-                            &&  !GameState::InCheck<Allies>(Board, king+1)
-                            &&  !GameState::InCheck<Allies>(Board, king+2))
-                                *Moves++ = Move::Encode<Piece>(origin, king+2, CastleKing);
-                    } else Board.castling_rights[Kk] = 0;
+                    if (!(((king+1) | (king+2)) & occupancy))
+                        if (!GameState::InCheck<Allies>(Board, king)
+                        &&  !GameState::InCheck<Allies>(Board, king+1)
+                        &&  !GameState::InCheck<Allies>(Board, king+2))
+                            *Moves++ = Move::Encode<Piece>(origin, king+2, CastleKing);
                 }
 
                 constexpr auto Qq = (Allies == White ? 1 : 3);
                 if (Board.castling_rights[Qq]) {
-                    if (Board[Rooks] & king-3) {
-                        if (!(((king-1) | (king-2) | (king-3)) & occupancy))
-                            if (!GameState::InCheck<Allies>(Board, king)
-                            &&  !GameState::InCheck<Allies>(Board, king-1)
-                            &&  !GameState::InCheck<Allies>(Board, king-2))
-                                *Moves++ = Move::Encode<Piece>(origin, king-2, CastleQueen);
-                    } else Board.castling_rights[Qq] = 0;
+                    if (!(((king-1) | (king-2) | (king-3)) & occupancy))
+                        if (!GameState::InCheck<Allies>(Board, king)
+                        &&  !GameState::InCheck<Allies>(Board, king-1)
+                        &&  !GameState::InCheck<Allies>(Board, king-2))
+                            *Moves++ = Move::Encode<Piece>(origin, king-2, CastleQueen);
                 }
             }
         }
@@ -131,6 +127,6 @@ private:
         }
     }
 
-     MoveGen()=delete;
-    ~MoveGen()=delete;
+     MoveGeneration()=delete;
+    ~MoveGeneration()=delete;
 };

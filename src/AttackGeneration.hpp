@@ -183,7 +183,7 @@ public:
     }
 
     [[nodiscard]] static _constexpr auto Magics_SOA() noexcept {
-        struct  Magics {
+        struct Magics {
             const std::array<std::array<Bitboard, 512>, 64>  Attacks;
             const std::array<std::uint64_t, 64>              Numbers;
             const std::array<Bitboard, 64>                   Masks;
@@ -310,7 +310,7 @@ public:
     }
 
     [[nodiscard]] static _constexpr auto Magics_SOA() {
-        struct alignas(64) Magics {
+        struct Magics {
             const std::array<std::array<Bitboard, 4096>, 64> Attacks;
             const std::array<std::uint64_t, 64>              Numbers;
             const std::array<Bitboard, 64>                   Masks;

@@ -1,18 +1,16 @@
-#include "ChessEngine.hpp"
-#include "GameState.hpp"
-#include "GetAttack.hpp"
+#include "Move.hpp"
+#include "UCI.hpp"
 #include "Perft.hpp"
-#include "Utils.hpp"
-#include "FEN.hpp"
+#include "Search.hpp"
 
-#define WPOS "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1"
-#define BPOS "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1"
+#include <algorithm>
+#include <random>
 
-#define POSITION "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"
-int main(int argc, char* argv[]) { (void)argc;
-
+int main(int argc, char* argv[]) { (void)argc; (void)argv;
     GameState Board(STARTING_POSITION);
-    Perft::Run(Board, std::atoi(argv[1]));
+
+    if (argc != 1) Perft::Run(Board, std::atoi(argv[1]));
+    else           UCI::Hook(Board);
 
     return 0;
 }

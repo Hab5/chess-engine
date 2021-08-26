@@ -3,15 +3,23 @@
 
 GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
 
+#define DEBUG_UNICODE
+
 [[nodiscard]] std::string GameState::PrettyPrint() const noexcept {
     std::stringstream output;
 
-    const std::array<std::string, 6> unicode { "♟", "♞", "♝", "♜", "♛", "♚" };
+    #if defined(DEBUG_UNICODE)
+    const std::array<std::string, 12> sym {
+        "♙", "♘", "♗", "♖", "♕", "♔",
+        "♟", "♞", "♝", "♜", "♛", "♚"
+    };
 
-    const auto fg_white = "\033[38;5;246m";
-    const auto fg_black = "\033[38;5;241m";
-    const auto fg_dim   = "\033[38;5;242m";
-    const auto reset    = "\033[0m";
+    #else
+    const std::array<std::string, 12> sym {
+        "P", "N", "B", "R", "Q", "K",
+        "p", "n", "b", "r", "q", "k"
+    };
+    #endif
 
     const auto pannel_size = 14;
 
@@ -29,8 +37,8 @@ GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
         for (int color = White; color <= Black && found.empty(); color++)
             for (int piece = Pawns, idx = 0; piece <= King && !found[0]; piece++, idx++)
                 if (Utils::Flip<Vertical>(pieces[piece] & pieces[color]) & square)
-                    found = (color ? fg_black : fg_white) + unicode[idx];
-        output << (found.empty() ? std::string(fg_dim) + ". " : found + " ") << reset;
+                    found = sym[idx+(color == White ? 0:6)];
+        output << (found.empty() ? ". " : found + " ");
         if ((square+1) % 8 == 0) output << "│ " << [&]() -> std::string {
             std::stringstream ss;
             switch(square/8) {

@@ -42,7 +42,7 @@ private:
         constexpr auto Other = ~Color;
         if (depth == 0) return 1ULL;
 
-        auto [move_list, nmoves] = MoveGen::Run<Color>(Board);
+        auto [move_list, nmoves] = MoveGeneration::Run<Color>(Board);
 
         GameState Old = Board;
         std::uint64_t nodes = 0;
@@ -58,7 +58,7 @@ private:
         constexpr auto Other = ~Color;
         if (depth == 0) return 1ULL;
 
-        auto [move_list, nmoves] = MoveGen::Run<Color>(Board);
+        auto [move_list, nmoves] = MoveGeneration::Run<Color>(Board);
 
         GameState Old = Board;
         std::uint64_t nodes = 0;
