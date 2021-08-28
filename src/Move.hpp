@@ -7,6 +7,7 @@
 
 #include <iomanip>
 
+
 enum EnumMoveFlags: std::uint8_t {
     Quiet            = 0b0000,
     DoublePush       = 0b0001,
@@ -149,7 +150,18 @@ struct Move final {
     }
 
     friend inline std::ostream& operator<<(std::ostream& os, const Move& move) {
-        return os << std::left << std::setw(8) << move.piece << std::setw(0) << "| "
-                  << move.origin << '-' << move.target << " | " << move.flags;
+        return os << move.origin << move.target
+                  << ((move.flags  &  PromotionKnight) ?
+                     ((move.flags ==  PromotionKnight) ||
+                      (move.flags == (PromotionKnight  | Capture))  ? "n" :
+                     ((move.flags ==  PromotionBishop) ||
+                      (move.flags == (PromotionBishop  | Capture))) ? "b" :
+                     ((move.flags ==  PromotionRook)   ||
+                      (move.flags == (PromotionRook    | Capture))) ? "r" :
+                     ((move.flags ==  PromotionQueen)  ||
+                      (move.flags == (PromotionQueen   | Capture))) ? "q" :
+                      "") : "");
     }
 };
+
+using MoveList = std::array<Move, 218>;

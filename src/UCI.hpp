@@ -67,8 +67,11 @@ private:
     static void Go(GameState& Board, std::istringstream& tokens) { // TODO: score mate
         std::string token; tokens >> token;
 
+        auto depth = 8;
+        if (token == "depth") depth = (tokens >> token, std::atoi(token.c_str()));
+
         auto started  = std::chrono::steady_clock::now();
-        auto [move, score] = Search::AlphaBetaNegamax(Board, 5);
+        auto score = Search::AlphaBetaNegamax(Board, depth);
         auto finished = std::chrono::steady_clock::now();
 
         auto ms = std::chrono::duration_cast
@@ -78,31 +81,19 @@ private:
         auto sec = ms / 1000.00000f;
         std::uint64_t nps = Search::nodes / sec;
 
-        if (score >  10000) std::cout << "MATE#" << CHECKMATE-score/2 << '\n';
-        if (score < -10000) std::cout << "MATE#" << CHECKMATE+score/2 << '\n';
+        if (score >  10000) std::cout << "MATE#" << (CHECKMATE-score)/2 << '\n';
+        if (score < -10000) std::cout << "MATE#" << (CHECKMATE+score)/2 << '\n';
 
         std::cout << "info"
-                  << " depth "    << 5
+                  << " depth "    << depth
                   << " score cp " << score
-                  << " time "     << ms
                   << " nodes "    << Search::nodes
+                  << " time "     << ms
                   << " nps "      << nps
+                  << " pv "       << PrincipalVariation::ToString()
                   << std::endl;
 
-        std::cout << "bestmove "
-                  << move.origin
-                  << move.target
-                  << ((move.flags  &  PromotionKnight) ?
-                     ((move.flags ==  PromotionKnight) ||
-                      (move.flags == (PromotionKnight  | Capture))  ? "n" :
-                     ((move.flags ==  PromotionBishop) ||
-                      (move.flags == (PromotionBishop  | Capture))) ? "b" :
-                     ((move.flags ==  PromotionRook)   ||
-                      (move.flags == (PromotionRook    | Capture))) ? "r" :
-                     ((move.flags ==  PromotionQueen)  ||
-                      (move.flags == (PromotionQueen   | Capture))) ? "q" :
-                      "") : "")
-                  << std::endl;
+        std::cout << "bestmove " << PrincipalVariation::GetBestMove() << std::endl;
     }
 
     static void SetPosition(GameState& Board, std::istringstream& tokens) {

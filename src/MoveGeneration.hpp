@@ -8,12 +8,14 @@
 
 #include <iomanip>
 
+using MoveList = std::array<Move, 218>;
+
 class MoveGeneration final {
 public:
     template <EnumColor Color>
-    static inline auto Run(GameState& Board) noexcept
-    -> std::tuple<std::array<Move, 218>, int> {
-        std::array<Move, 218> moves;
+    static inline auto Run(GameState& Board) noexcept -> std::tuple<MoveList, int> {
+
+        MoveList moves;
 
         auto iterator = moves.begin();
         PseudoLegal<Color, Pawns  >(Board, iterator);
@@ -30,7 +32,7 @@ public:
 private:
 
     template <EnumColor Color, EnumPiece Piece> static inline
-    auto PseudoLegal(GameState& Board, std::array<Move, 218>::iterator& Moves) noexcept {
+    auto PseudoLegal(GameState& Board, MoveList::iterator& Moves) noexcept {
         constexpr auto Allies = Color, Enemies = ~Allies;
         auto set       = (Board[Allies] & Board[Piece  ]);
         auto occupancy = (Board[Allies] | Board[Enemies]);
@@ -45,6 +47,18 @@ private:
             constexpr auto PromotionRank = (Allies == White ? Rank_8 : Rank_1);
             constexpr auto Up            = (Allies == White ? North  : South );
 
+            auto attacks = GetAttack<Allies, Piece>::On(origin) & Board[Enemies];
+            while (attacks) {
+                auto attack = Utils::PopLS1B(attacks);
+                *Moves++ = Move::Encode<Piece>(origin, attack, Capture);
+                if (attack & PromotionRank) { --Moves;
+                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionKnight | Capture);
+                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionBishop | Capture);
+                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionRook   | Capture);
+                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionQueen  | Capture);
+                }
+            }
+
             auto empty = ~occupancy;
             EnumSquare target = origin + Up;
             if (target & empty) {
@@ -56,18 +70,6 @@ private:
                     *Moves++ = Move::Encode<Piece>(origin, target, PromotionBishop);
                     *Moves++ = Move::Encode<Piece>(origin, target, PromotionRook  );
                     *Moves++ = Move::Encode<Piece>(origin, target, PromotionQueen );
-                }
-            }
-
-            auto attacks = GetAttack<Allies, Piece>::On(origin) & Board[Enemies];
-            while (attacks) {
-                auto attack = Utils::PopLS1B(attacks);
-                *Moves++ = Move::Encode<Piece>(origin, attack, Capture);
-                if (attack & PromotionRank) { --Moves;
-                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionKnight | Capture);
-                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionBishop | Capture);
-                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionRook   | Capture);
-                    *Moves++ = Move::Encode<Piece>(origin, attack, PromotionQueen  | Capture);
                 }
             }
 

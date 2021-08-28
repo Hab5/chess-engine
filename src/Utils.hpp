@@ -16,8 +16,8 @@ enum EnumFlip: std::uint8_t {
 
 class Utils final {
 public:
-    #define Print(...) Utils::_Print(#__VA_ARGS__, __VA_ARGS__);
-    static void _Print(const std::string& desc="None", Bitboard bitboard=0ULL) {
+    #define PrintBB(...) Utils::_PrintBB(#__VA_ARGS__, __VA_ARGS__);
+    static void _PrintBB(const std::string& desc="None", Bitboard bitboard=0ULL) {
         std::stringstream ss;
         auto desc_size = int(desc.size()); desc_size += (desc_size < 25 ? 25-desc_size:0);
         for (int i = 0; i < desc_size+2; i++) ss << "─";
