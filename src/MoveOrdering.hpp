@@ -5,35 +5,70 @@
 
 #include <algorithm>
 
+class PrincipalVariation final { friend class Search;
+public:
+
+    [[nodiscard]] static inline auto  GetBestMove()             { return table[0][0];   }
+    [[nodiscard]] static inline auto& GetMove(std::uint8_t ply) { return table[0][ply]; }
+
+    [[nodiscard]] static inline auto ToString() noexcept {
+        std::stringstream pv;
+        for (auto index = 0; index < length[0]; ++index)
+            pv << table[0][index] << " ";
+        return pv.str();
+    }
+
+
+private:
+    static inline std::array<std::array<Move, 64>, 64> table  { };
+    static inline std::array<std::uint8_t, 64>         length { };
+
+    static inline auto UpdateLength(std::uint8_t ply) noexcept { length[ply] = ply; }
+
+    static inline auto UpdateTable(std::uint8_t ply, Move move) noexcept {
+        table[ply][ply] = move;
+        std::copy_n(&table[ply+1][ply+1], length[ply+1], &table[ply][ply+1]);
+        length[ply] = length[ply+1];
+    }
+
+     PrincipalVariation()=delete;
+    ~PrincipalVariation()=delete;
+};
+
 class MoveOrdering final {
 public:
 
-    static inline auto SortAll(const GameState& Board, MoveList& move_list, int nmoves) noexcept {
+    static inline int ScoreMove
+    (const GameState& Board, Move& move, std::uint8_t ply) noexcept {
+        if (*reinterpret_cast<int*>(&move) ==
+            *reinterpret_cast<int*>(&PrincipalVariation::GetMove(ply-1))) {
+            // std::cout << "PV MOVE: " << move << '\n';
+            return 100;
+        } else if (move.flags & Capture) {
+            auto victim = Pawns;
+            for (int piece = Pawns; piece != King; ++piece) {
+                if (move.target & Board[piece]) {
+                    victim = static_cast<EnumPiece>(piece);
+                    break;
+                }
+            } return mvv_lva_table[move.piece-2][victim-2];
+        } else return 0;
+    }
+
+    static inline auto SortAll
+    (const GameState& Board, MoveList& move_list, int nmoves, std::uint8_t ply) noexcept {
         std::sort(&move_list[0], &move_list[nmoves], [&](Move& a, Move& b) {
-            return MoveOrdering::MVV_LVA(Board, a) > MoveOrdering::MVV_LVA(Board, b);
+            return MoveOrdering::ScoreMove(Board, a, ply) > MoveOrdering::ScoreMove(Board, b, ply);
         });
     }
 
-    static inline auto PartialSort(const GameState& Board, MoveList& move_list, int nmoves) noexcept {
-        std::partial_sort(&move_list[0], &move_list[5], &move_list[nmoves], [&](Move& a, Move& b) {
-            return MoveOrdering::MVV_LVA(Board, a) > MoveOrdering::MVV_LVA(Board, b);
-        });
-    }
-
-    static inline auto SwapFirst(const GameState& Board, MoveList& move_list, int nmoves) {
+    static inline auto SwapFirst
+    (const GameState& Board, MoveList& move_list, int nmoves, std::uint8_t ply) {
         auto res = std::max_element(&move_list[0], &move_list[nmoves], [&](Move& a, Move& b) {
-            return MoveOrdering::MVV_LVA(Board, a) < MoveOrdering::MVV_LVA(Board, b);});
+            return MoveOrdering::ScoreMove(Board, a, ply) < MoveOrdering::ScoreMove(Board, b, ply);});
         std::swap(move_list[0], move_list[std::distance(&move_list[0], res)]);
     }
 
-    static inline int MVV_LVA(const GameState& Board, Move& move) noexcept {
-        if (move.flags & Capture) {
-            auto victim = Pawns;
-            for (int piece = Pawns; piece != King; ++piece)
-                if (move.target & Board[piece]) victim = static_cast<EnumPiece>(piece);
-            return mvv_lva_table[move.piece-2][victim-2];
-        } else return 0;
-    }
 
 private:
     static constexpr std::array<std::array<std::uint8_t, 6>, 6> mvv_lva_table {

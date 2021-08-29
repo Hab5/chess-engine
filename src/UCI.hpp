@@ -4,8 +4,8 @@
 #include "ChessEngine.hpp"
 #include "GameState.hpp"
 #include "Search.hpp"
-#include "Move.hpp"
 #include "Utils.hpp"
+#include "Move.hpp"
 
 #include <random>
 #include <chrono>
@@ -70,8 +70,38 @@ private:
         auto depth = 8;
         if (token == "depth") depth = (tokens >> token, std::atoi(token.c_str()));
 
+
+        std::cout << "Iterative Deepening:\n";
+        Search::Init();
+        for (int deepening = 1; deepening <= depth; ++deepening) {
+            auto started  = std::chrono::steady_clock::now();
+            auto score = Search::AlphaBetaNegamax(Board, deepening);
+            auto finished = std::chrono::steady_clock::now();
+
+            auto ms = std::chrono::duration_cast
+                    <std::chrono::milliseconds>
+                    (finished-started).count();
+
+            auto sec = ms / 1000.00000f;
+            std::uint64_t nps = Search::nodes / sec;
+
+            if (score >  10000) std::cout << "MATE#" << (CHECKMATE-score)/2 << '\n';
+            if (score < -10000) std::cout << "MATE#" << (CHECKMATE+score)/2 << '\n';
+
+            std::cout << "info"
+                    << " depth "    << deepening
+                    << " score cp " << score
+                    << " nodes "    << Search::nodes
+                    << " time "     << ms
+                    << " nps "      << nps
+                    << " pv "       << PrincipalVariation::ToString()
+                    << std::endl;
+        }
+        std::cout << "bestmove " << PrincipalVariation::GetBestMove() << std::endl;
+
+        std::cout << "\nFixed Depth:\n";
         auto started  = std::chrono::steady_clock::now();
-        auto score = Search::AlphaBetaNegamax(Board, depth);
+        auto score = (Search::Init(), Search::AlphaBetaNegamax(Board, depth));
         auto finished = std::chrono::steady_clock::now();
 
         auto ms = std::chrono::duration_cast
@@ -114,8 +144,6 @@ private:
                 )) break;
             }
         }
-
-        // std::cout << Board << std::endl;
     }
 
     template <EnumColor Color>

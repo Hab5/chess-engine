@@ -6,76 +6,48 @@
 #include "MoveOrdering.hpp"
 
 #include <algorithm>
+#include <cstring>
 
 #define CHECKMATE 32000
 #define STALEMATE 00000
 #define INFINITY  50000
 
-class PrincipalVariation final { friend class Search;
-public:
-    static inline auto UpdateLength(std::uint8_t ply) noexcept { length[ply] = ply; }
-
-    static inline auto UpdateTable(std::uint8_t ply, Move move) noexcept {
-        table[ply][ply] = move;
-        std::copy_n(&table[ply+1][ply+1], length[ply+1], &table[ply][ply+1]);
-        length[ply] = length[ply+1];
-    }
-
-    [[nodiscard]] static inline auto ToString() noexcept {
-        std::stringstream pv;
-        for (auto index = 0; index < length[0]; ++index)
-            pv << table[0][index] << " ";
-        return pv.str();
-    }
-
-    [[nodiscard]] static inline auto GetBestMove() { return table[0][0]; }
-
-private:
-    static inline std::array<std::array<Move, 64>, 64> table  { };
-    static inline std::array<std::uint8_t, 64>         length { };
-
-     PrincipalVariation()=delete;
-    ~PrincipalVariation()=delete;
-};
 
 class Search final {
 public:
-    static inline std::uint64_t nodes         = 0;
-    static inline Move          best_move;
-    static inline std::int16_t  best_score    = 0;
-    static inline std::uint8_t  ply           = 0;
+    static inline std::uint64_t nodes;
+    static inline std::uint8_t  ply;
 
     static inline auto Init() noexcept {
-        Search::nodes         = 0;
-        Search::best_score    = 0;
-        Search::ply           = 0;
+        Search::nodes   = 0;
+        Search::ply     = 0;
     }
 
     [[nodiscard]] static auto AlphaBetaNegamax(GameState& Board, std::uint8_t depth) noexcept {
-        return Search::Init(), Board.to_play == White ?
+        return Board.to_play == White ?
             Negamax<White>(Board, -INFINITY, INFINITY, depth) :
             Negamax<Black>(Board, -INFINITY, INFINITY, depth) ;
     }
 
     template <EnumColor Color> [[nodiscard]]
     static inline int Negamax(GameState& Board, int alpha, int beta, int depth) noexcept {
-        constexpr auto Other = ~Color;
+        constexpr auto Other = ~Color; ++Search::nodes; ++Search::ply;
 
-        PrincipalVariation::UpdateLength(Search::ply++);
+        PrincipalVariation::UpdateLength(Search::ply-1);
 
         if (depth == 0) return --Search::ply, Evaluation::Run<Color>(Board);
 
         auto [move_list, nmoves] = MoveGeneration::Run<Color>(Board);
-        MoveOrdering::SortAll(Board, move_list, nmoves);
+        MoveOrdering::SortAll(Board, move_list, nmoves, Search::ply);
 
         GameState Old = Board; auto legal_moves = 0;
         for (auto move_index = 0; move_index < nmoves; move_index++) {
             auto move = move_list[move_index];
-            if (Move::Make<Color>(Board, move)) { ++Search::nodes, ++legal_moves;
+            if (Move::Make<Color>(Board, move)) { ++legal_moves;
                 auto score = -Negamax<Other>(Board, -beta, -alpha, depth-1);
                 if (score > alpha) {
-                    PrincipalVariation::UpdateTable(Search::ply-1, move);
                     if (score >= beta) return --Search::ply, beta;
+                    PrincipalVariation::UpdateTable(Search::ply-1, move);
                     alpha = score;
                 }
             } Board = Old;
@@ -83,21 +55,12 @@ public:
 
         if (!legal_moves) {
             if (GameState::InCheck<Color>(Board, Utils::IndexLS1B(Board[King] & Board[Color])))
-                return -CHECKMATE + --Search::ply + 1;
+                return -CHECKMATE + Search::ply--;
             else return --Search::ply, STALEMATE;
         }
 
         return --Search::ply, alpha;
     }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -119,7 +82,7 @@ public:
 
         auto [move_list, nmoves] = MoveGeneration::Run<Color>(Board);
 
-        MoveOrdering::SwapFirst(Board, move_list, nmoves);
+        // MoveOrdering::SwapFirst(Board, move_list, nmoves);
 
         GameState Old = Board;
 
