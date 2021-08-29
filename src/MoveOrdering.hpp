@@ -42,7 +42,6 @@ public:
     (const GameState& Board, Move& move, std::uint8_t ply) noexcept {
         if (*reinterpret_cast<int*>(&move) ==
             *reinterpret_cast<int*>(&PrincipalVariation::GetMove(ply-1))) {
-            // std::cout << "PV MOVE: " << move << '\n';
             return 100;
         } else if (move.flags & Capture) {
             auto victim = Pawns;

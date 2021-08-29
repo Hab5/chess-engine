@@ -38,7 +38,7 @@ public:
         if (depth == 0) return --Search::ply, Evaluation::Run<Color>(Board);
 
         auto [move_list, nmoves] = MoveGeneration::Run<Color>(Board);
-        MoveOrdering::SortAll(Board, move_list, nmoves, Search::ply);
+        MoveOrdering::SwapFirst(Board, move_list, nmoves, Search::ply);
 
         GameState Old = Board; auto legal_moves = 0;
         for (auto move_index = 0; move_index < nmoves; move_index++) {

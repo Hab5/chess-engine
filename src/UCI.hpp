@@ -97,33 +97,34 @@ private:
                     << " pv "       << PrincipalVariation::ToString()
                     << std::endl;
         }
-        std::cout << "bestmove " << PrincipalVariation::GetBestMove() << std::endl;
-
-        std::cout << "\nFixed Depth:\n";
-        auto started  = std::chrono::steady_clock::now();
-        auto score = (Search::Init(), Search::AlphaBetaNegamax(Board, depth));
-        auto finished = std::chrono::steady_clock::now();
-
-        auto ms = std::chrono::duration_cast
-                 <std::chrono::milliseconds>
-                 (finished-started).count();
-
-        auto sec = ms / 1000.00000f;
-        std::uint64_t nps = Search::nodes / sec;
-
-        if (score >  10000) std::cout << "MATE#" << (CHECKMATE-score)/2 << '\n';
-        if (score < -10000) std::cout << "MATE#" << (CHECKMATE+score)/2 << '\n';
-
-        std::cout << "info"
-                  << " depth "    << depth
-                  << " score cp " << score
-                  << " nodes "    << Search::nodes
-                  << " time "     << ms
-                  << " nps "      << nps
-                  << " pv "       << PrincipalVariation::ToString()
-                  << std::endl;
 
         std::cout << "bestmove " << PrincipalVariation::GetBestMove() << std::endl;
+
+        // std::cout << "\nFixed Depth:\n";
+        // auto started  = std::chrono::steady_clock::now();
+        // auto score = (Search::Init(), Search::AlphaBetaNegamax(Board, depth));
+        // auto finished = std::chrono::steady_clock::now();
+
+        // auto ms = std::chrono::duration_cast
+        //          <std::chrono::milliseconds>
+        //          (finished-started).count();
+
+        // auto sec = ms / 1000.00000f;
+        // std::uint64_t nps = Search::nodes / sec;
+
+        // if (score >  10000) std::cout << "MATE#" << (CHECKMATE-score)/2 << '\n';
+        // if (score < -10000) std::cout << "MATE#" << (CHECKMATE+score)/2 << '\n';
+
+        // std::cout << "info"
+        //           << " depth "    << depth
+        //           << " score cp " << score
+        //           << " nodes "    << Search::nodes
+        //           << " time "     << ms
+        //           << " nps "      << nps
+        //           << " pv "       << PrincipalVariation::ToString()
+        //           << std::endl;
+
+        // std::cout << "bestmove " << PrincipalVariation::GetBestMove() << std::endl;
     }
 
     static void SetPosition(GameState& Board, std::istringstream& tokens) {

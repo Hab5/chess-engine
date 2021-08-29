@@ -16,7 +16,7 @@ OBJDIR  := obj
 
 PGO     := $(RELEASE) -g -fprofile-instr-generate
 PGO_USE := -fprofile-instr-use=$(TARGET).profdata
-PGO_ARG := 6
+PGO_ARG := pgo
 
 ############################################################################
 ############################## MAKEFILE RULES ##############################
