@@ -11,8 +11,10 @@
 #include <algorithm>
 
 class GameState final {
+    friend class  TranspositionTable;
     friend class  MoveGeneration;
     friend class  Evaluation;
+    friend class  Zobrist;
     friend class  Search;
     friend class  Perft;
     friend struct Move; // ocd triggered
@@ -53,14 +55,16 @@ public:
         return en_passant;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const GameState& board) {
+    friend std::ostream& operator<<(std::ostream& os, GameState& board) {
         return os << board.PrettyPrint();
     }
 
 private:
-    [[nodiscard]] std::string PrettyPrint() const noexcept;
+    [[nodiscard]] std::string PrettyPrint() noexcept;
 
     std::array<Bitboard, 8> pieces { };
+
+    std::uint64_t  hash;
     EnumColor      to_play;
     EnumSquare     en_passant;
     std::bitset<4> castling_rights;

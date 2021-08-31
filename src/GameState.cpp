@@ -1,11 +1,12 @@
 #include "GameState.hpp"
 #include "FEN.hpp"
+#include "TranspositionTable.hpp"
 
 GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
 
 #define DEBUG_UNICODE
 
-[[nodiscard]] std::string GameState::PrettyPrint() const noexcept {
+[[nodiscard]] std::string GameState::PrettyPrint() noexcept {
     std::stringstream output;
 
     #if defined(DEBUG_UNICODE)
@@ -21,7 +22,7 @@ GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
     };
     #endif
 
-    const auto pannel_size = 14;
+    const auto pannel_size = 28;
 
     auto empty_padding = [](int sz) -> std::string {
         std::stringstream ss;
@@ -30,7 +31,7 @@ GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
         return ss.str();
     };
 
-    output <<   "┌───────────────────┬────────────────┐";
+    output <<   "┌───────────────────┬──────────────────────────────┐";
     for (EnumSquare square = a1; square <= h8 ; ++square) {
         if (square % 8  == 0) output << "\n│ " + std::to_string(8-square/8) + " ";
         auto found = std::string();
@@ -42,11 +43,12 @@ GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
         if ((square+1) % 8 == 0) output << "│ " << [&]() -> std::string {
             std::stringstream ss;
             switch(square/8) {
-            case 0: ss << "TOPLAY: " << (to_play ? "BLACK" : "WHITE"); break;
-            case 2: ss << "ENPASS: " << (en_passant ? SquareStr[en_passant]: "-"); break;
-            case 3: ss << "FMOVES: " << full_moves; break;
-            case 4: ss << "HMOVES: " << half_moves; break;
-            case 1: ss << "CASTLE: "
+            case 0: ss << "ZKHASH: " << Zobrist::Hash(*this); break;
+            case 1: ss << "TOPLAY: " << (to_play ? "BLACK" : "WHITE"); break;
+            case 3: ss << "ENPASS: " << (en_passant ? SquareStr[en_passant]: "-"); break;
+            case 4: ss << "FMOVES: " << full_moves; break;
+            case 5: ss << "HMOVES: " << half_moves; break;
+            case 2: ss << "CASTLE: "
                        << (castling_rights[0] ? "K" : "-")
                        << (castling_rights[1] ? "Q" : "-")
                        << (castling_rights[2] ? "k" : "-")
@@ -56,6 +58,6 @@ GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
         }();
     }
     output << "\n│ ϴ a b c d e f g h │ " << empty_padding(pannel_size)
-           << "\n└───────────────────┴────────────────┘";
+           << "\n└───────────────────┴──────────────────────────────┘";
     return output.str();
 }
