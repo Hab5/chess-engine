@@ -11,7 +11,7 @@
 
 #define CHECKMATE  32000
 #define STALEMATE  00000
-#define INFINITY   50000
+#define INF        50000
 
 class Search final {
 public:
@@ -27,8 +27,8 @@ public:
     [[nodiscard]] static auto AlphaBetaNegamax
     (GameState& Board, int depth) noexcept {
         return Board.to_play == White ?
-            Negamax<White>(Board, -INFINITY, INFINITY, depth) :
-            Negamax<Black>(Board, -INFINITY, INFINITY, depth) ;
+            Negamax<White>(Board, -INF, INF, depth) :
+            Negamax<Black>(Board, -INF, INF, depth) ;
     }
 
     template <EnumColor Color> [[nodiscard]]
@@ -86,7 +86,7 @@ public:
             Board.en_passant = EnumSquare(0);
             auto score = -Negamax<Other>(Board, -beta, -beta + 1, depth-1 - R);
             Board = Old; return score;
-        } else return -INFINITY;
+        } else return -INF;
     }
 
 

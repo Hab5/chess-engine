@@ -32,7 +32,7 @@ namespace Generator {
             for (int color = White; color <= Black; ++color)
                 for (int piece = Pawns; piece <= King; ++piece)
                     for (EnumSquare square = a1; square <= h8; ++square)
-                        piece_keys[piece+(6*color)][square] = rng64();
+                        piece_keys[piece+(6*color)-2][square] = rng64();
             return piece_keys;
         }
 
@@ -60,9 +60,12 @@ namespace Generator {
 }
 
 class Zobrist final {
+    friend struct Move;
 public:
     [[nodiscard]] static inline auto Hash(GameState& Board) noexcept {
         std::uint64_t hash = 0ULL;
+
+        if (Board.to_play == Black) hash ^= Keys.Side;
 
         for (int piece = Pawns; piece <= King; ++piece) {
             auto WhitePieces = Board[piece] & Board[White];
@@ -70,18 +73,18 @@ public:
 
             while (WhitePieces) {
                 auto square = Utils::PopLS1B(WhitePieces);
-                hash ^= Keys.Piece[piece][square];
+                hash ^= Keys.Piece[piece-2][square];
             }
 
             while (BlackPieces) {
                 auto square = Utils::PopLS1B(BlackPieces);
-                hash ^= Keys.Piece[piece+6][square];
+                hash ^= Keys.Piece[piece+6-2][square];
             }
+
         }
 
         if (Board.en_passant) hash ^= Keys.EnPassant[Board.en_passant];
         hash ^= Keys.Castle[Board.castling_rights.to_ulong()];
-        if (Board.to_play == Black) hash ^= Keys.Side;
 
         return hash;
     }
@@ -98,6 +101,6 @@ public:
 
 private:
 
-    TranspositionTable()=delete;
+     TranspositionTable()=delete;
     ~TranspositionTable()=delete;
 };

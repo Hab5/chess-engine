@@ -2,7 +2,10 @@
 #include "FEN.hpp"
 #include "TranspositionTable.hpp"
 
-GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
+GameState::GameState(const std::string& fen) {
+    FEN::Load(fen, *this);
+    hash = Zobrist::Hash(*this);
+}
 
 #define DEBUG_UNICODE
 
@@ -43,7 +46,7 @@ GameState::GameState(const std::string& fen) { FEN::Load(fen, *this); }
         if ((square+1) % 8 == 0) output << "│ " << [&]() -> std::string {
             std::stringstream ss;
             switch(square/8) {
-            case 0: ss << "ZKHASH: " << Zobrist::Hash(*this); break;
+            case 0: ss << "ZKHASH: " << hash; break;
             case 1: ss << "TOPLAY: " << (to_play ? "BLACK" : "WHITE"); break;
             case 3: ss << "ENPASS: " << (en_passant ? SquareStr[en_passant]: "-"); break;
             case 4: ss << "FMOVES: " << full_moves; break;

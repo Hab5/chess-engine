@@ -1,10 +1,12 @@
 #pragma once
 
+#include "TranspositionTable.hpp"
 #include "ChessEngine.hpp"
 #include "GameState.hpp"
 #include "GetAttack.hpp"
 #include "Utils.hpp"
 
+#include <cstdio>
 #include <iomanip>
 
 
@@ -82,67 +84,126 @@ struct Move final {
 
         const auto [piece, origin, target, flags] = move;
 
+        if (Board.en_passant)
+            Board.hash ^= Zobrist::Keys.EnPassant[Board.en_passant];
+
         //////////////////////////////////////// QUIET ///////////////////////////////////////
 
         if (flags == Quiet) {
+            Board.hash ^= Zobrist::Keys.Side;
+            Board.hash ^= Zobrist::Keys.Piece[piece+(Allies*6)-2][origin];
+            Board.hash ^= Zobrist::Keys.Piece[piece+(Allies*6)-2][target];
+
             Board.to_play    = Enemies;
             Board.en_passant = EnumSquare(0);
             Board[Allies] ^= (Board[piece] ^= (origin|target), (origin|target));
-            if (piece == Rooks) {
+
+            if (piece == Rooks) { // FIX CASTLING THINGY
+                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ullong()]; 
                 if (origin == KingRook ) Board.castling_rights[Kk] = 0;
                 if (origin == QueenRook) Board.castling_rights[Qq] = 0;
+                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ullong()];
+
             } else if (piece == King) {
-                Board.castling_rights[Kk] = 0;
-                Board.castling_rights[Qq] = 0;
-            } return not GameState::InCheck<Allies>(
-                   Board, Utils::IndexLS1B(Board[King] & Board[Allies]));
+                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ullong()];
+                Board.castling_rights[Kk] = 0, Board.castling_rights[Qq] = 0;
+                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ullong()];
+            }
+
+            return not GameState::InCheck<Allies>(Board, Utils::IndexLS1B(
+                Board[King] & Board[Allies])
+            );
+
+            if (Board.hash != Zobrist::Hash(Board)) std::cout << "FAILED QUIET HASH\n";
+
         } else { Board.en_passant = EnumSquare(0);
 
          ////////////////////////////////////// CAPTURE //////////////////////////////////////
 
             if (flags & Capture) {
-                for (auto set = &Board[Pawns]; set != &Board[King]; ++set)
-                    if (*set & target) Board[Enemies] ^= (*set ^= target, target);
+                for (int piece = Pawns; piece <= King; ++piece) {
+                    if (Board[piece] & target) {
+                        Board[Enemies] ^= (Board[piece] ^= target, target);
+                        Board.hash ^= Zobrist::Keys.Piece[piece+(Enemies*6)-2][target];
+                    }
+                }
             }
 
         ////////////////////////////////////// SPECIAL ///////////////////////////////////////
 
-            else if (flags == DoublePush)
+            else if (flags == DoublePush) {
                 Board.en_passant = target + Down;
+                Board.hash ^= Zobrist::Keys.EnPassant[Board.en_passant];
+            }
 
-            else if (flags == CastleKing)
+            else if (flags == CastleKing) {
+                constexpr auto KingRookDest = Color == White ? h1 : h8;
+                Board.hash ^= Zobrist::Keys.Piece[Rooks+(Allies*6)-2][KingRook];
+                Board.hash ^= Zobrist::Keys.Piece[Rooks+(Allies*6)-2][KingRookDest];
                 Board[Allies] ^= (Board[Rooks] ^= CastleK, CastleK);
+            }
 
-            else if (flags == CastleQueen)
+            else if (flags == CastleQueen) {
+                constexpr auto QueenRookDest = Color == White ? a1 : a8;
+                Board.hash ^= Zobrist::Keys.Piece[Rooks+(Allies*6)-2][QueenRook];
+                Board.hash ^= Zobrist::Keys.Piece[Rooks+(Allies*6)-2][QueenRookDest];
                 Board[Allies] ^= (Board[Rooks] ^= CastleQ, CastleQ);
+            }
 
-            if (flags == EnPassant)
+            if (flags == EnPassant) {
                 Board[Enemies] ^= (Board[Pawns] ^= target+Down, target+Down);
+                Board.hash ^= Zobrist::Keys.Piece[Pawns+(Enemies*6)-2][target+Down];
+            }
 
             else if (flags & PromotionKnight) {
                 const auto promotion =
                 flags == PromotionBishop || flags == XPromotionBishop ? Bishops :
                 flags == PromotionRook   || flags == XPromotionRook   ? Rooks   :
                 flags == PromotionQueen  || flags == XPromotionQueen  ? Queens  : Knights;
+
+
+                Board.hash ^= Zobrist::Keys.Side;
+                Board.hash ^= Zobrist::Keys.Piece[Pawns+(Allies*6)-2][origin];
+                Board.hash ^= Zobrist::Keys.Piece[promotion+(Allies*6)-2][target];
+
                 Board[Allies] ^= (Board[Pawns] ^= origin, (origin|target));
                 Board[promotion] |= target; Board.to_play = Enemies;
+
+                if (Board.hash != Zobrist::Hash(Board)) std::cout << "FAILED PROMOTION HASH\n";
+
                 return not GameState::InCheck<Allies>(Board, Utils::IndexLS1B(
                     Board[King] & Board[Allies])
                 );
             }
 
             if (piece == Rooks) {
+                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ullong()];
                 if (origin == KingRook ) Board.castling_rights[Kk] = 0;
                 if (origin == QueenRook) Board.castling_rights[Qq] = 0;
+                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ullong()];
             } else if (piece == King) {
+                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ullong()];
                 Board.castling_rights[Kk] = 0;
                 Board.castling_rights[Qq] = 0;
+                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ullong()];
             }
 
         //////////////////////////////////////////////////////////////////////////////////////
 
+            Board.hash ^= Zobrist::Keys.Side;
+            Board.hash ^= Zobrist::Keys.Piece[piece+(Allies*6)-2][origin];
+            Board.hash ^= Zobrist::Keys.Piece[piece+(Allies*6)-2][target];
+
             Board.to_play  = Enemies;
             Board[Allies] ^= (Board[piece] ^= (origin|target), (origin|target));
+
+
+            if (Board.hash != Zobrist::Hash(Board)) {
+                std::cout << "FAILED: " << move.flags << '\n';
+                std::cout << Board << '\n'; getchar();
+            }
+            Board.hash = Zobrist::Hash(Board); // TEMPORARY
+
             return not GameState::InCheck<Allies>(Board, Utils::IndexLS1B(
                 Board[King] & Board[Allies])
             );
