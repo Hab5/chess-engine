@@ -116,7 +116,7 @@ private:
 
         if constexpr(Piece == Bishops || Piece == Rooks || Piece == Queens) {
             auto attacks = Bitboard(0);
-            attacks =  GetAttack<Piece>::On(origin, occupancy) & ~Board[Allies];
+            attacks = GetAttack<Piece>::On(origin, occupancy) & ~Board[Allies];
             while (attacks) {
                 auto attack = Utils::PopLS1B(attacks);
                 if (attack & ~Board[Enemies])
@@ -126,6 +126,7 @@ private:
         }
 
         /////////////////////////////////////////////////////////////////////////////////////
+
         }
     }
 

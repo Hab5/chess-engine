@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <cstring>
 
-
 #define CHECKMATE  32000
 #define STALEMATE  00000
 #define INF        50000
@@ -82,6 +81,9 @@ public:
         constexpr auto R = 3;
         if (depth >= R+1 && ply-1) {
             GameState Old = Board;
+            if (Board.en_passant)
+                Board.hash ^= Zobrist::Keys.EnPassant[Board.en_passant];
+            Board.hash ^= Zobrist::Keys.Side;
             Board.to_play = Other;
             Board.en_passant = EnumSquare(0);
             auto score = -Negamax<Other>(Board, -beta, -beta + 1, depth-1 - R);

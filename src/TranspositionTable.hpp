@@ -60,6 +60,7 @@ namespace Generator {
 }
 
 class Zobrist final {
+    friend class  Search;
     friend struct Move;
 public:
     [[nodiscard]] static inline auto Hash(GameState& Board) noexcept {

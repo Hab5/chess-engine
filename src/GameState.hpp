@@ -20,7 +20,7 @@ class GameState final {
     friend struct Move; // ocd triggered
     friend class  FEN;
     friend class  UCI;
-    
+
 public:
     GameState(const std::string& fen=STARTING_POSITION);
 
