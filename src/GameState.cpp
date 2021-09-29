@@ -1,10 +1,10 @@
+#include "ZobristHashing.hpp"
 #include "GameState.hpp"
 #include "FEN.hpp"
-#include "TranspositionTable.hpp"
 
 GameState::GameState(const std::string& fen) {
     FEN::Load(fen, *this);
-    hash = Zobrist::Hash(*this);
+    hash = ZobristHashing::Hash(*this);
 }
 
 #define DEBUG_UNICODE

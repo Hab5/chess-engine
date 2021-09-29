@@ -1,107 +1,67 @@
 #pragma once
 
-#include "ChessEngine.hpp"
+#include "Move.hpp"
 #include "GameState.hpp"
+#include "ChessEngine.hpp"
+#include "ZobristHashing.hpp"
 
 #include <iostream>
 #include <random>
+#include <cstring>
 
-namespace Generator {
-    class ZobristKeys {
-    public:
-        [[nodiscard]] static auto Get() noexcept {
-            struct _Zobrist {
-                std::array<std::array<std::uint64_t, 64>, 12> Piece;
-                std::array<std::uint64_t, 64>                 EnPassant;
-                std::array<std::uint64_t, 16>                 Castle;
-                std::uint64_t                                 Side;
-            };
+#define HASH_TABLE_SIZE 0x100000 * 64 // 32mb
 
-            return _Zobrist {
-                .Piece     = ZobristKeys::PieceKeys(),
-                .EnPassant = ZobristKeys::EnPassantKeys(),
-                .Castle    = ZobristKeys::CastleKeys(),
-                .Side      = rng64()
-            };
-        }
+enum TTFlag {
+    HashExact,
+    HashAlpha,
+    HashBeta,
+    // HashUnknown = 0xDEAD,
+};
 
-    private:
-        [[nodiscard]] static auto PieceKeys() noexcept
-            -> std::array<std::array<std::uint64_t, 64>, 12>  {
-            std::array<std::array<std::uint64_t, 64>, 12> piece_keys { };
-            for (int color = White; color <= Black; ++color)
-                for (int piece = Pawns; piece <= King; ++piece)
-                    for (EnumSquare square = a1; square <= h8; ++square)
-                        piece_keys[piece+(6*color)-2][square] = rng64();
-            return piece_keys;
-        }
-
-        [[nodiscard]] static auto EnPassantKeys() noexcept
-            -> std::array<std::uint64_t, 64> {
-            std::array<std::uint64_t, 64> en_passant_keys { };
-            for (EnumSquare square = a1; square <= h8; ++square)
-                en_passant_keys[square] = rng64();
-            return en_passant_keys;
-        }
-
-        [[nodiscard]] static auto CastleKeys() noexcept
-            -> std::array<std::uint64_t, 16> {
-            std::array<std::uint64_t, 16> castle_keys { };
-            for (int castle = 0; castle < 16; ++castle)
-                castle_keys[castle] = rng64();
-            return castle_keys;
-        }
-
-        static inline auto rng64 = std::mt19937_64(0xdeadbeef);
-
-         ZobristKeys()=delete;
-        ~ZobristKeys()=delete;
-    };
-}
-
-class Zobrist final {
-    friend class  Search;
-    friend struct Move;
-public:
-    [[nodiscard]] static inline auto Hash(GameState& Board) noexcept {
-        std::uint64_t hash = 0ULL;
-
-        if (Board.to_play == Black) hash ^= Keys.Side;
-
-        for (int piece = Pawns; piece <= King; ++piece) {
-            auto WhitePieces = Board[piece] & Board[White];
-            auto BlackPieces = Board[piece] & Board[Black];
-
-            while (WhitePieces) {
-                auto square = Utils::PopLS1B(WhitePieces);
-                hash ^= Keys.Piece[piece-2][square];
-            }
-
-            while (BlackPieces) {
-                auto square = Utils::PopLS1B(BlackPieces);
-                hash ^= Keys.Piece[piece+6-2][square];
-            }
-
-        }
-
-        if (Board.en_passant) hash ^= Keys.EnPassant[Board.en_passant];
-        hash ^= Keys.Castle[Board.castling_rights.to_ulong()];
-
-        return hash;
-    }
-
-private:
-     static const inline auto Keys = Generator::ZobristKeys::Get();
-
-     Zobrist()=delete;
-    ~Zobrist()=delete;
+struct TTData {
+    std::uint64_t hash;
+    std::uint32_t flag;
+    Move          move; // 1 byte
+    std::int32_t  score;
+    std::uint8_t  depth;
 };
 
 class TranspositionTable final {
 public:
 
-private:
+    inline auto Record(GameState& Board, int flag, int score, Move best, int depth) noexcept {
+        TTData& Entry = table[Board.hash % HASH_TABLE_SIZE];
 
-     TranspositionTable()=delete;
-    ~TranspositionTable()=delete;
+        if (Entry.hash == Board.hash && Entry.depth > depth)
+            return;
+
+        Entry.hash  = Board.hash;
+        Entry.score = score;
+        Entry.move  = best;
+        Entry.flag  = flag;
+        Entry.depth = depth;
+    }
+
+    inline auto Probe(GameState& Board, int alpha, int beta, int depth) noexcept {
+        TTData& Entry = table[Board.hash % HASH_TABLE_SIZE];
+
+        if (Entry.hash == Board.hash) {
+            if (Entry.depth >= depth)
+                return (Entry.flag == HashExact) ?  Entry.score :
+                       (Entry.flag == HashAlpha  && Entry.score <= alpha) ? alpha :
+                       (Entry.flag == HashBeta   && Entry.score >= beta ) ? beta  :
+                       0xDEAD;
+        } return 0xDEAD;
+    }
+
+    inline auto GetBestMove(GameState& Board) noexcept  {
+        TTData& Entry = table[Board.hash % HASH_TABLE_SIZE];
+        if (Entry.hash) return Entry.move;
+        else return Move {EnumPiece(0), EnumSquare(0), EnumSquare(0), EnumMoveFlags(0) };
+    }
+
+    inline auto Clear() noexcept { std::memset(&table[0], 0, sizeof(table)); }
+
+private:
+    std::array<TTData, HASH_TABLE_SIZE> table { };
 };

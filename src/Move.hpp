@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TranspositionTable.hpp"
+#include "ZobristHashing.hpp"
 #include "ChessEngine.hpp"
 #include "GameState.hpp"
 #include "GetAttack.hpp"
@@ -9,6 +9,56 @@
 #include <cstdio>
 #include <iomanip>
 
+#define USE_HASH_TABLE
+
+#if defined(USE_HASH_TABLE)
+
+#define HASH_UPDATE_MOVE                                                          \
+    Board.hash ^= ZobristHashing::Keys.Piece[piece+(Allies*6)-2][origin];         \
+    Board.hash ^= ZobristHashing::Keys.Piece[piece+(Allies*6)-2][target];
+
+#define HASH_UPDATE_CAPTURE                                                       \
+    Board.hash ^= ZobristHashing::Keys.Piece[piece+(Enemies*6)-2][target];
+
+#define HASH_UPDATE_CASTLING_RIGHTS                                               \
+    Board.hash ^= ZobristHashing::Keys.Castle[Board.castling_rights.to_ulong()];
+
+#define HASH_UPDATE_CASTLING_KING_ROOK                                            \
+    constexpr auto KingRookTarget = Color == White ? f1 : f8;                     \
+    Board.hash ^= ZobristHashing::Keys.Piece[Rooks+(Allies*6)-2][KingRook];       \
+    Board.hash ^= ZobristHashing::Keys.Piece[Rooks+(Allies*6)-2][KingRookTarget];
+
+#define HASH_UPDATE_CASTLING_QUEEN_ROOK                                           \
+    constexpr auto QueenRookTarget = Color == White ? d1 : d8;                    \
+    Board.hash ^= ZobristHashing::Keys.Piece[Rooks+(Allies*6)-2][QueenRook];      \
+    Board.hash ^= ZobristHashing::Keys.Piece[Rooks+(Allies*6)-2][QueenRookTarget];
+
+#define HASH_UPDATE_EN_PASSANT                                                    \
+    Board.hash ^= ZobristHashing::Keys.EnPassant[Board.en_passant];
+
+#define HASH_UPDATE_CAPTURE_EN_PASSANT                                            \
+    Board.hash ^= ZobristHashing::Keys.Piece[Pawns+(Enemies*6)-2][target+Down];
+
+#define HASH_UPDATE_PROMOTION                                                     \
+    Board.hash ^= ZobristHashing::Keys.Piece[Pawns+(Allies*6)-2][origin];         \
+    Board.hash ^= ZobristHashing::Keys.Piece[promotion+(Allies*6)-2][target];
+
+#define HASH_UPDATE_SIDE                                                         \
+    Board.hash ^= ZobristHashing::Keys.Side;
+
+#else
+
+#define HASH_UPDATE_MOVE
+#define HASH_UPDATE_CAPTURE
+#define HASH_UPDATE_CASTLING_RIGHTS
+#define HASH_UPDATE_CASTLING_KING_ROOK
+#define HASH_UPDATE_CASTLING_QUEEN_ROOK
+#define HASH_UPDATE_CAPTURE_EN_PASSANT
+#define HASH_UPDATE_EN_PASSANT
+#define HASH_UPDATE_PROMOTION
+#define HASH_UPDATE_SIDE
+
+#endif
 
 enum EnumMoveFlags: std::uint8_t {
     Quiet            = 0b0000,
@@ -71,7 +121,7 @@ struct Move final {
         };
     }
 
-    template<EnumColor Color> [[nodiscard]] //__attribute__((always_inline))
+    template<EnumColor Color> [[nodiscard]]
     static inline auto Make(GameState& Board, const Move& move) noexcept {
         constexpr auto Allies    = Color, Enemies = ~Color;
         constexpr auto Down      = Allies == White ? South : North;
@@ -82,30 +132,26 @@ struct Move final {
 
         const auto [piece, origin, target, flags] = move;
 
-        if (Board.en_passant)
-            Board.hash ^= Zobrist::Keys.EnPassant[Board.en_passant];
+        if (Board.en_passant) HASH_UPDATE_EN_PASSANT;
 
         //////////////////////////////////////// QUIET ///////////////////////////////////////
 
-        if (flags == Quiet) {
-            Board.hash ^= Zobrist::Keys.Side;
-            Board.hash ^= Zobrist::Keys.Piece[piece+(Allies*6)-2][origin];
-            Board.hash ^= Zobrist::Keys.Piece[piece+(Allies*6)-2][target];
+        if (flags == Quiet) { HASH_UPDATE_SIDE; HASH_UPDATE_MOVE;
 
-            Board.to_play    = Enemies;
+            Board.to_play = Enemies;
             Board.en_passant = EnumSquare(0);
             Board[Allies] ^= (Board[piece] ^= (origin|target), (origin|target));
 
-            if (piece == Rooks) { // FIX CASTLING THINGY
-                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ulong()];
+            if (piece == Rooks) {
+                HASH_UPDATE_CASTLING_RIGHTS;
                 if (origin == KingRook ) Board.castling_rights[Kk] = 0;
                 if (origin == QueenRook) Board.castling_rights[Qq] = 0;
-                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ulong()];
-
+                HASH_UPDATE_CASTLING_RIGHTS;
             } else if (piece == King) {
-                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ulong()];
-                Board.castling_rights[Kk] = 0, Board.castling_rights[Qq] = 0;
-                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ulong()];
+                HASH_UPDATE_CASTLING_RIGHTS;
+                Board.castling_rights[Kk] = 0;
+                Board.castling_rights[Qq] = 0;
+                HASH_UPDATE_CASTLING_RIGHTS;
             }
 
             return not GameState::InCheck<Allies>(Board, Utils::IndexLS1B(
@@ -122,28 +168,23 @@ struct Move final {
 
                     if (Board[piece] & target) {
                         Board[Enemies] ^= (Board[piece] ^= target, target);
-                        Board.hash ^= Zobrist::Keys.Piece[piece+(Enemies*6)-2][target];
-
-                        if (piece == Rooks) { // disgusting, change that at some point
+                        HASH_UPDATE_CAPTURE;
+                        if (piece == Rooks) {
                             constexpr auto EnemyKingRook  = Allies == White ? h8 : h1;
                             constexpr auto EnemyQueenRook = Allies == White ? a8 : a1;
                             constexpr auto EnemyKk        = Allies == White ? 2  : 0 ;
                             constexpr auto EnemyQq        = Allies == White ? 3  : 1 ;
 
                             if (target == EnemyKingRook) {
-                                Board.hash ^= Zobrist::Keys.Castle
-                                    [Board.castling_rights.to_ulong()];
+                                HASH_UPDATE_CASTLING_RIGHTS;
                                 Board.castling_rights[EnemyKk] = 0;
-                                Board.hash ^= Zobrist::Keys.Castle
-                                    [Board.castling_rights.to_ulong()];
+                                HASH_UPDATE_CASTLING_RIGHTS;
                             }
 
                             else if (target == EnemyQueenRook) {
-                                Board.hash ^= Zobrist::Keys.Castle
-                                    [Board.castling_rights.to_ulong()];
+                                HASH_UPDATE_CASTLING_RIGHTS;
                                 Board.castling_rights[EnemyQq] = 0;
-                                Board.hash ^= Zobrist::Keys.Castle
-                                    [Board.castling_rights.to_ulong()];
+                                HASH_UPDATE_CASTLING_RIGHTS;
                             }
                         }
                     }
@@ -154,28 +195,21 @@ struct Move final {
 
             else if (flags == DoublePush) {
                 Board.en_passant = target + Down;
-                Board.hash ^= Zobrist::Keys.EnPassant[Board.en_passant];
+                HASH_UPDATE_EN_PASSANT;
             }
 
-            else if (flags == CastleKing) {
+            else if (flags == CastleKing)  { HASH_UPDATE_CASTLING_KING_ROOK;
                 constexpr auto CastleK = Allies == White ? (h1|f1) : (h8|f8);
-                constexpr auto KingRookTarget = Color == White ? f1 : f8;
-                Board.hash ^= Zobrist::Keys.Piece[Rooks+(Allies*6)-2][KingRook];
-                Board.hash ^= Zobrist::Keys.Piece[Rooks+(Allies*6)-2][KingRookTarget];
                 Board[Allies] ^= (Board[Rooks] ^= CastleK, CastleK);
             }
 
-            else if (flags == CastleQueen) {
+            else if (flags == CastleQueen) { HASH_UPDATE_CASTLING_QUEEN_ROOK;
                 constexpr auto CastleQ = Allies == White ? (a1|d1) : (a8|d8);
-                constexpr auto QueenRookTarget = Color == White ? d1 : d8;
-                Board.hash ^= Zobrist::Keys.Piece[Rooks+(Allies*6)-2][QueenRook];
-                Board.hash ^= Zobrist::Keys.Piece[Rooks+(Allies*6)-2][QueenRookTarget];
                 Board[Allies] ^= (Board[Rooks] ^= CastleQ, CastleQ);
             }
 
-            if (flags == EnPassant) {
+            if (flags == EnPassant)        { HASH_UPDATE_CAPTURE_EN_PASSANT;
                 Board[Enemies] ^= (Board[Pawns] ^= target+Down, target+Down);
-                Board.hash ^= Zobrist::Keys.Piece[Pawns+(Enemies*6)-2][target+Down];
             }
 
             else if (flags & PromotionKnight) {
@@ -184,9 +218,7 @@ struct Move final {
                 flags == PromotionRook   || flags == XPromotionRook   ? Rooks   :
                 flags == PromotionQueen  || flags == XPromotionQueen  ? Queens  : Knights;
 
-                Board.hash ^= Zobrist::Keys.Side;
-                Board.hash ^= Zobrist::Keys.Piece[Pawns+(Allies*6)-2][origin];
-                Board.hash ^= Zobrist::Keys.Piece[promotion+(Allies*6)-2][target];
+                HASH_UPDATE_SIDE; HASH_UPDATE_PROMOTION;
 
                 Board[Allies] ^= (Board[Pawns] ^= origin, (origin|target));
                 Board[promotion] |= target; Board.to_play = Enemies;
@@ -197,21 +229,20 @@ struct Move final {
             }
 
             if (piece == Rooks) {
-                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ulong()];
+                HASH_UPDATE_CASTLING_RIGHTS;
                 if (origin == KingRook ) Board.castling_rights[Kk] = 0;
                 if (origin == QueenRook) Board.castling_rights[Qq] = 0;
-                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ulong()];
+                HASH_UPDATE_CASTLING_RIGHTS;
             } else if (piece == King) {
-                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ulong()];
-                Board.castling_rights[Kk] = 0, Board.castling_rights[Qq] = 0;
-                Board.hash ^= Zobrist::Keys.Castle[Board.castling_rights.to_ulong()];
+                HASH_UPDATE_CASTLING_RIGHTS;
+                Board.castling_rights[Kk] = 0;
+                Board.castling_rights[Qq] = 0;
+                HASH_UPDATE_CASTLING_RIGHTS;
             }
 
         //////////////////////////////////////////////////////////////////////////////////////
 
-            Board.hash ^= Zobrist::Keys.Side;
-            Board.hash ^= Zobrist::Keys.Piece[piece+(Allies*6)-2][origin];
-            Board.hash ^= Zobrist::Keys.Piece[piece+(Allies*6)-2][target];
+            HASH_UPDATE_SIDE; HASH_UPDATE_MOVE;
 
             Board.to_play  = Enemies;
             Board[Allies] ^= (Board[piece] ^= (origin|target), (origin|target));

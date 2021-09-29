@@ -12,12 +12,12 @@
 
 class GameState final {
     friend class  TranspositionTable;
+    friend class  ZobristHashing;
     friend class  MoveGeneration;
     friend class  Evaluation;
-    friend class  Zobrist;
     friend class  Search;
     friend class  Perft;
-    friend struct Move; // ocd triggered
+    friend struct Move;
     friend class  FEN;
     friend class  UCI;
 

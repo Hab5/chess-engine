@@ -67,7 +67,7 @@ private:
     static void Go(GameState& Board, std::istringstream& tokens) { // TODO: score mate
         std::string token; tokens >> token;
 
-        auto depth = 8;
+        auto depth = 10;
         if (token == "depth") depth = (tokens >> token, std::atoi(token.c_str()));
 
         Search::Init();
@@ -96,6 +96,7 @@ private:
                       << std::endl;
         }
 
+        std::cout << "besthash " << HashTable.GetBestMove(Board) << std::endl;
         std::cout << "bestmove " << PrincipalVariation::GetBestMove() << std::endl;
 
 

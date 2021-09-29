@@ -4,12 +4,13 @@
 #include "Move.hpp"
 
 #include <algorithm>
+#include <cstring>
 
 class PrincipalVariation final { friend class Search;
 public:
 
-    [[nodiscard]] static inline auto  GetBestMove()             { return table[0][0];   }
-    [[nodiscard]] static inline auto& GetMove(std::uint8_t ply) { return table[0][ply]; }
+    [[nodiscard]] static inline auto  GetBestMove()              { return table[0][0];   }
+    [[nodiscard]] static inline auto& GetMove(std::uint8_t ply)  { return table[0][ply]; }
 
     [[nodiscard]] static inline auto ToString() noexcept {
         std::stringstream pv;
