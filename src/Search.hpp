@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Move.hpp"
 #include "TranspositionTable.hpp"
 #include "MoveGeneration.hpp"
 #include "MoveOrdering.hpp"
@@ -8,6 +9,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <atomic>
 
 #define CHECKMATE  32000
 #define STALEMATE  00000
@@ -15,26 +17,13 @@
 
 static TranspositionTable HashTable;
 
-#pragma once
-
-#include "ChessEngine.hpp"
-#include "MoveGeneration.hpp"
-#include "Evalutation.hpp"
-#include "MoveOrdering.hpp"
-
-#include <algorithm>
-#include <cstring>
-
-#define CHECKMATE  32000
-#define STALEMATE  00000
-#define INF        50000
-
-class Search final {
+class Search final { friend class UCI;
 public:
     static inline std::uint64_t nodes;
     static inline std::uint8_t  ply;
 
     static inline auto Init() noexcept {
+        // HashTable.Clear();
         std::memset(&PrincipalVariation::table,  0, sizeof(PrincipalVariation::table));
         std::memset(&PrincipalVariation::length, 0, sizeof(PrincipalVariation::length));
         Search::nodes = 0, Search::ply = 0;
@@ -47,9 +36,15 @@ public:
             Negamax<Black>(Board, -INF, INF, depth) ;
     }
 
+private:
+    static inline std::atomic<bool> stop = false;
+
     template <EnumColor Color> [[nodiscard]]
     static inline int Negamax(GameState& Board, int alpha, int beta, int depth) noexcept {
         constexpr auto Other = ~Color; ++Search::nodes; auto score = 0;
+
+        if (stop) return beta;
+
         bool PrincipalVariationSearch = false;
 
         PrincipalVariation::UpdateLength(Search::ply);
@@ -57,11 +52,9 @@ public:
         if (depth == 0) return Evaluation::Run<Color>(Board);
         // if (depth == 0) return Search::Quiescence<Color>(Board, alpha, beta);
 
-        // TTFlag HashFlag = HashAlpha;
-        // if (Search::ply && (score = HashTable.Probe(Board, alpha, beta, depth) != 0xDEAD)) {
-        //     if (score >= alpha && score <= beta)
-        //         return score;
-        // }
+        TTFlag HashFlag = HashAlpha;
+        if (Search::ply && (score = HashTable.Probe(Board, alpha, beta, depth) != 0xDEAD))
+            return beta; // THE FUCK IS GOING ON HERE?!
 
         if (NullMovePruning<Other>(Board, beta, depth) >= beta)
             return beta;
@@ -73,8 +66,8 @@ public:
         // MoveOrdering::SwapFirst(Board, move_list, nmoves, Search::ply+1);
         MoveOrdering::SortAll(Board, move_list, nmoves, Search::ply+1);
 
-        Move best_move = move_list[0];
-        GameState Old = Board; auto legal_moves = 0;
+
+        GameState Old = Board; Move best_move; auto legal_moves = 0;
         for (auto move_index = 0; move_index < nmoves; move_index++) {
             auto move = move_list[move_index];
             if (Move::Make<Color>(Board, move)) { ++legal_moves;
@@ -88,16 +81,13 @@ public:
                 --Search::ply;
 
                 if (score > alpha) { PrincipalVariationSearch = true;
-                    best_move = move;
-
                     if (score >= beta) {
-                        // HashTable.Record(Old, HashBeta, beta, best_move, depth);
+                        HashTable.Record(Old, HashBeta, score, move, depth);
                         return beta;
                     }
-
+                    alpha = score, best_move = move;
                     PrincipalVariation::UpdateTable(Search::ply, best_move);
-                    // HashFlag = HashExact;
-                    alpha = score;
+                    HashFlag = HashExact;
                 }
             } Board = Old;
         }
@@ -108,11 +98,11 @@ public:
             else return STALEMATE;
         }
 
-        // HashTable.Record(Board, HashFlag, alpha, best_move, depth);
+        HashTable.Record(Board, HashFlag, alpha, best_move, depth);
         return alpha;
     }
 
-    template <EnumColor Other>
+    template <EnumColor Other> [[nodiscard]]
     static inline int NullMovePruning(GameState& Board, int beta, int depth) noexcept {
         constexpr auto R = 3;
         if (depth >= R+1 && ply) {
@@ -128,7 +118,6 @@ public:
             Board = Old; return score;
         } else return -INF;
     }
-
 
     template <EnumColor Color> [[nodiscard]]
     static inline int Quiescence(GameState& Board, int alpha, int beta) noexcept {
@@ -161,7 +150,6 @@ public:
         return alpha;
     }
 
-private:
      Search()=delete;
     ~Search()=delete;
 };

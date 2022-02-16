@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <iostream>
 #include <random>
+#include <type_traits>
 
 // STARTING_POS SORTALL (best e2e4)
 // info depth 8 score cp -15 nodes 1473910 time 217 nps 6792211 pv e2e4 g8f6 e4e5 f6d5 c2c4 d5f4 g2g4 b8c6
@@ -37,10 +38,9 @@ int main(int argc, char* argv[]) { (void)argc; (void)argv;
         return 0;
     }
 
-    GameState Board(PHILIDORS_MATE);
+    GameState Board(STARTING_POSITION);
     std::cout << Board << std::endl;
     UCI::Hook(Board);
-
 
     return 0;
 }

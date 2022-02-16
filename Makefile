@@ -10,7 +10,7 @@ STD     := -std=c++17
 RELEASE := -Ofast -march=native -DNDEBUG -g
 PROFILE := -Ofast -march=native -g3 -fno-omit-frame-pointer
 DEBUG   := -g3 -ggdb -fno-omit-frame-pointer
-LIBS    :=
+LIBS    := -pthread
 
 OBJDIR  := obj
 

@@ -57,7 +57,7 @@ public:
     inline auto GetBestMove(GameState& Board) noexcept  {
         TTData& Entry = table[Board.hash % HASH_TABLE_SIZE];
         if (Entry.hash) return Entry.move;
-        else return Move {EnumPiece(0), EnumSquare(0), EnumSquare(0), EnumMoveFlags(0) };
+        else return Move { EnumPiece(0), EnumSquare(0), EnumSquare(0), EnumMoveFlags(0) };
     }
 
     inline auto Clear() noexcept { std::memset(&table[0], 0, sizeof(table)); }
